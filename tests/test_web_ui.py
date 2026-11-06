@@ -30,6 +30,20 @@ class WebUiTests(unittest.TestCase):
         self.assertEqual(result, expected)
         answer_question.assert_called_once_with("What is the expense ratio?")
 
+    def test_chat_endpoint_passes_conversation_context_when_available(self):
+        request = web_app.ChatRequest(
+            question="What is the minimum SIP?",
+            context="What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
+        )
+
+        with patch.object(web_app, "answer_question", return_value={"status": "answered"}) as answer_question:
+            web_app.chat(request)
+
+        answer_question.assert_called_once_with(
+            "What is the minimum SIP?",
+            context="What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
+        )
+
     def test_ui_validates_citation_protocol_before_creating_links(self):
         self.assertIn("url.protocol === \"https:\" || url.protocol === \"http:\"", HOME_PAGE)
         self.assertIn('link.rel = "noopener noreferrer"', HOME_PAGE)
@@ -39,17 +53,27 @@ class WebUiTests(unittest.TestCase):
         self.assertIn('role="tablist"', HOME_PAGE)
         self.assertIn('id="new-conversation"', HOME_PAGE)
         self.assertIn('role="tabpanel"', HOME_PAGE)
-        self.assertIn("function followUpQuestions(question)", HOME_PAGE)
         self.assertIn('aria-label", "Suggested follow-up questions"', HOME_PAGE)
+        self.assertIn("More facts from this scheme", HOME_PAGE)
         self.assertIn('id="read-aloud-dialog"', HOME_PAGE)
         self.assertIn("SpeechSynthesisUtterance", HOME_PAGE)
         self.assertIn("window.sessionStorage", HOME_PAGE)
+        self.assertIn("body: JSON.stringify({ question, context })", HOME_PAGE)
+
+    def test_suggestion_to_chat_transition_respects_reduced_motion(self):
+        self.assertIn("document.startViewTransition(beginSubmission)", HOME_PAGE)
+        self.assertIn("view-transition-name: conversation-panel", HOME_PAGE)
+        self.assertIn('prefers-reduced-motion: reduce', HOME_PAGE)
+        self.assertIn("chatShell.classList.toggle(\"is-active\", hasTurns)", HOME_PAGE)
 
     def test_ui_only_renders_explicitly_verified_charts_with_citations(self):
         self.assertIn("chart.verified !== true", HOME_PAGE)
         self.assertIn("!Array.isArray(citations) || !citations.some((item) => safeHttpUrl(item.url))", HOME_PAGE)
         self.assertIn("Number.isFinite(item.value)", HOME_PAGE)
-        self.assertIn("appendChart(data.chart, citations, turn)", HOME_PAGE)
+        self.assertIn("chart.data.length < 1", HOME_PAGE)
+        self.assertIn("appendMetricCard(data.metric, citations, visuals)", HOME_PAGE)
+        self.assertIn("appendChart(data.chart, citations, visuals)", HOME_PAGE)
+        self.assertIn("button.textContent = text", HOME_PAGE)
 
     def test_answers_use_a_professional_and_considerate_tone(self):
         unverified = build_answer("What are the scheme details?", evidence=[])
@@ -60,6 +84,48 @@ class WebUiTests(unittest.TestCase):
 
         self.assertIn("I’m sorry", unverified["answer"])
         self.assertIn("I found this", verified["answer"])
+
+    def test_numeric_answer_is_prominent_and_follow_ups_are_source_available_facts(self):
+        evidence = [{
+            "title": "HDFC Large Cap Fund Direct Growth",
+            "url": "https://example.com/hdfc-large-cap",
+            "retrieved_at": "2026-11-06T00:00:00+00:00",
+            "text": (
+                "HDFC Large Cap Fund Direct Growth\n"
+                "Min. for SIP\n₹100\n"
+                "Fund size (AUM)\n₹37,293.95 Cr\n"
+                "Expense ratio\n1.01%"
+            ),
+        }]
+
+        result = build_answer(
+            "What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
+            evidence=evidence,
+        )
+
+        self.assertEqual(result["metric"]["display_value"], "1.01%")
+        self.assertTrue(result["chart"]["verified"])
+        self.assertEqual(result["chart"]["data"], [{
+            "label": "Expense ratio",
+            "value": 1.01,
+            "display_value": "1.01%",
+        }])
+        self.assertEqual(result["chart"]["unit"], "%")
+        self.assertTrue(any("minimum SIP" in question for question in result["follow_ups"]))
+        self.assertTrue(any("fund size (AUM)" in question for question in result["follow_ups"]))
+        self.assertFalse(any("What does SIP mean" in question for question in result["follow_ups"]))
+
+        aum_result = build_answer(
+            "What is the fund size (AUM) of HDFC Large Cap Fund Direct Growth?",
+            evidence=evidence,
+        )
+        self.assertEqual(aum_result["metric"]["display_value"], "₹37,293.95 Cr")
+
+        sip_result = build_answer(
+            "What is the minimum SIP for HDFC Large Cap Fund Direct Growth?",
+            evidence=evidence,
+        )
+        self.assertEqual(sip_result["metric"]["display_value"], "₹100")
 
     def test_retrieval_returns_no_evidence_without_corpus_embeddings(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -119,6 +185,29 @@ class WebUiTests(unittest.TestCase):
             results[0]["url"],
             "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth",
         )
+        fetch_source.assert_called_once_with(
+            "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
+        )
+
+    def test_follow_up_without_scheme_name_uses_the_previous_question_context(self):
+        source_text = (
+            "HDFC Large Cap Fund Direct Growth\n"
+            "Min. for SIP\n₹100\n"
+            "Fund size (AUM)\n₹37,293.95 Cr\n"
+            "Expense ratio\n1.01%"
+        )
+        with patch(
+            "src.retrieval.retriever._fetch_source_text",
+            return_value=source_text,
+        ) as fetch_source:
+            result = web_app.chat(web_app.ChatRequest(
+                question="What is the minimum SIP?",
+                context="What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
+            ))
+
+        self.assertEqual(result["status"], "answered")
+        self.assertEqual(result["metric"]["display_value"], "₹100")
+        self.assertEqual(result["citations"][0]["label"], "HDFC Large Cap Fund Direct Growth")
         fetch_source.assert_called_once_with(
             "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
         )

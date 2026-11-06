@@ -188,6 +188,7 @@ HOME_PAGE = r"""<!doctype html>
     .privacy-note { color: var(--muted); }
 
     .suggestions { padding: 14px 0 32px; }
+    .suggestions { view-transition-name: conversation-panel; }
 
     .section-heading {
       display: flex;
@@ -265,6 +266,7 @@ HOME_PAGE = r"""<!doctype html>
     }
 
     .chat-shell {
+      display: none;
       margin: 4px 0 22px;
       overflow: hidden;
       border: 1px solid var(--line);
@@ -272,6 +274,15 @@ HOME_PAGE = r"""<!doctype html>
       background: rgb(255 255 255 / 96%);
       box-shadow: 0 12px 32px rgb(65 70 74 / 6%);
     }
+
+    .chat-shell.is-active {
+      display: block;
+      view-transition-name: conversation-panel;
+    }
+
+    ::view-transition-group(conversation-panel) { animation-duration: .55s; }
+    ::view-transition-old(conversation-panel) { animation: panel-out .35s ease both; }
+    ::view-transition-new(conversation-panel) { animation: panel-in .48s cubic-bezier(.2,.8,.2,1) both; }
 
     .conversation-bar {
       display: flex;
@@ -385,6 +396,51 @@ HOME_PAGE = r"""<!doctype html>
 
     .read-aloud[aria-pressed="true"] { border-color: #bdc9c1; background: var(--sage-pale); }
 
+    .fact-visuals {
+      display: grid;
+      grid-template-columns: minmax(210px, .75fr) minmax(280px, 1.25fr);
+      gap: 12px;
+      width: min(100%, 760px);
+    }
+
+    .metric-card, .chart-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: white;
+      padding: 17px;
+    }
+
+    .metric-label {
+      margin: 0;
+      color: var(--muted);
+      font: 10px var(--mono);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      margin: 10px 0 7px;
+      color: var(--ink-strong);
+      font: 650 clamp(30px, 5vw, 46px)/1.05 var(--display);
+      letter-spacing: -.045em;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+
+    .metric-source { margin: 0; color: var(--quiet); font-size: 10px; }
+
+    .chart-card { margin: 0; }
+    .chart-title { margin: 0 0 18px; color: var(--ink-strong); font: 600 13px var(--display); }
+    .chart-rows { display: grid; gap: 10px; }
+    .chart-row { display: grid; grid-template-columns: minmax(85px, 30%) 1fr auto; align-items: center; gap: 9px; font-size: 11px; }
+    .chart-name { overflow-wrap: anywhere; color: var(--muted); }
+    .chart-track { height: 12px; overflow: hidden; border-radius: 999px; background: #e9ece9; }
+    .chart-bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7d9885, #526d5b); transition: width .45s ease; }
+    .chart-value { color: var(--ink-strong); font: 11px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .chart-axis { display: flex; justify-content: space-between; margin: 8px 0 0; color: var(--quiet); font: 9px var(--mono); }
+    .chart-caption { margin: 12px 0 0; color: var(--muted); font-size: 10px; }
+
     .follow-ups {
       display: flex;
       flex-wrap: wrap;
@@ -417,23 +473,6 @@ HOME_PAGE = r"""<!doctype html>
     }
 
     .follow-up:hover { border-color: #bdc9c1; background: var(--sage-pale); }
-
-    .chart-card {
-      margin-top: 14px;
-      border: 1px solid var(--line);
-      border-radius: 9px;
-      background: #fcfcfb;
-      padding: 13px;
-    }
-
-    .chart-title { margin: 0 0 12px; color: var(--ink-strong); font: 600 13px var(--display); }
-    .chart-rows { display: grid; gap: 10px; }
-    .chart-row { display: grid; grid-template-columns: minmax(88px, 30%) 1fr auto; align-items: center; gap: 9px; font-size: 11px; }
-    .chart-name { overflow-wrap: anywhere; color: var(--muted); }
-    .chart-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e9ece9; }
-    .chart-bar { height: 100%; border-radius: inherit; background: var(--sage); }
-    .chart-value { color: var(--ink-strong); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
-    .chart-caption { margin: 10px 0 0; color: var(--muted); font-size: 10px; }
 
     .feature-dialog {
       width: min(440px, calc(100% - 32px));
@@ -633,6 +672,15 @@ HOME_PAGE = r"""<!doctype html>
       to { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes panel-out {
+      to { opacity: 0; filter: blur(3px); transform: scale(.97) translateY(-10px); }
+    }
+
+    @keyframes panel-in {
+      from { opacity: 0; filter: blur(3px); transform: scale(.985) translateY(12px); }
+      to { opacity: 1; filter: blur(0); transform: scale(1) translateY(0); }
+    }
+
     @keyframes dot {
       0%, 60%, 100% { opacity: .3; transform: translateY(0); }
       30% { opacity: 1; transform: translateY(-3px); }
@@ -640,6 +688,7 @@ HOME_PAGE = r"""<!doctype html>
 
     @media (max-width: 720px) {
       .suggestion-grid { grid-template-columns: 1fr; }
+      .fact-visuals { grid-template-columns: 1fr; }
       .suggestion { min-height: 105px; }
       .welcome { padding-top: 56px; }
       .welcome::after { top: 18px; right: -14px; opacity: .5; }
@@ -667,6 +716,10 @@ HOME_PAGE = r"""<!doctype html>
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
       }
+
+      ::view-transition-group(conversation-panel),
+      ::view-transition-old(conversation-panel),
+      ::view-transition-new(conversation-panel) { animation: none !important; }
     }
   </style>
 </head>
@@ -771,6 +824,7 @@ HOME_PAGE = r"""<!doctype html>
     const questionField = document.getElementById("question");
     const sendButton = document.getElementById("send");
     const messages = document.getElementById("messages");
+    const chatShell = document.querySelector(".chat-shell");
     const resetButton = document.getElementById("reset");
     const welcome = document.getElementById("welcome");
     const suggestions = document.getElementById("suggestions");
@@ -792,8 +846,10 @@ HOME_PAGE = r"""<!doctype html>
       questionField.disabled = pending;
       resetButton.disabled = pending;
       resetButton.hidden = !conversation || conversation.turns.length === 0;
-      welcome.hidden = Boolean(conversation && conversation.turns.length);
-      suggestions.hidden = Boolean(conversation && conversation.turns.length);
+      const hasTurns = Boolean(conversation && conversation.turns.length);
+      welcome.hidden = hasTurns;
+      suggestions.hidden = hasTurns;
+      chatShell.classList.toggle("is-active", hasTurns);
     }
 
     function renderTabs() {
@@ -880,41 +936,20 @@ HOME_PAGE = r"""<!doctype html>
       }
     }
 
-    function followUpQuestions(question) {
-      const normalized = question.toLowerCase();
-      if (normalized.includes("elss") || normalized.includes("lock-in") || normalized.includes("lock in")) {
-        return [
-          "Where can I find official scheme documents for an ELSS fund?",
-          "How is an ELSS lock-in period described for SIP instalments?"
-        ];
-      }
-      if (normalized.includes("expense ratio") || normalized.includes("charges") || normalized.includes("fee")) {
-        return [
-          "Where can I find HDFC’s latest official expense-ratio disclosures?",
-          "What other costs should I look for in the scheme documents?"
-        ];
-      }
-      if (normalized.includes("sip") || normalized.includes("minimum investment") || normalized.includes("minimum amount")) {
-        return [
-          "Where can I find current investment minimums for HDFC mutual fund schemes?",
-          "What does SIP mean in a mutual fund?"
-        ];
-      }
-      return [
-        "Where can I find the latest official scheme documents?",
-        "What fees and charges should I look for in those documents?"
-      ];
-    }
-
-    function appendFollowUps(question, container) {
+    function appendFollowUps(data, container) {
+      if (!Array.isArray(data.follow_ups)) return;
+      const questions = data.follow_ups.filter((question) =>
+        typeof question === "string" && question.trim()
+      ).slice(0, 3);
+      if (!questions.length) return;
       const section = document.createElement("div");
       section.className = "follow-ups";
       section.setAttribute("aria-label", "Suggested follow-up questions");
       const label = document.createElement("span");
       label.className = "follow-ups-label";
-      label.textContent = "Continue exploring";
+      label.textContent = "More facts from this scheme";
       section.append(label);
-      for (const text of followUpQuestions(question)) {
+      for (const text of questions) {
         const button = document.createElement("button");
         button.className = "follow-up";
         button.type = "button";
@@ -927,14 +962,22 @@ HOME_PAGE = r"""<!doctype html>
 
     function appendChart(chart, citations, container) {
       if (!chart || chart.verified !== true || !Array.isArray(chart.data)
-          || chart.data.length < 2 || chart.data.length > 12
+          || chart.data.length < 1 || chart.data.length > 12
           || !Array.isArray(citations) || !citations.some((item) => safeHttpUrl(item.url))) return;
       const rows = chart.data.filter((item) => item
         && typeof item.label === "string" && item.label.trim()
         && typeof item.value === "number" && Number.isFinite(item.value) && item.value >= 0);
       if (rows.length !== chart.data.length) return;
       const maximum = Math.max(...rows.map((item) => item.value));
-      if (maximum <= 0) return;
+      const scaleMaximum = Number(chart.scale_max);
+      if (maximum <= 0 || !Number.isFinite(scaleMaximum) || scaleMaximum < maximum) return;
+      const formatAxisValue = (value) => {
+        const number = value.toLocaleString();
+        if (chart.unit === "₹") return `₹${number}`;
+        if (chart.unit === "₹ Cr") return `₹${number} Cr`;
+        if (chart.unit === "%") return `${number}%`;
+        return `${number} ${chart.unit || ""}`.trim();
+      };
 
       const figure = document.createElement("figure");
       figure.className = "chart-card";
@@ -957,22 +1000,51 @@ HOME_PAGE = r"""<!doctype html>
         track.setAttribute("aria-hidden", "true");
         const bar = document.createElement("span");
         bar.className = "chart-bar";
-        bar.style.width = `${Math.max(0, item.value / maximum * 100)}%`;
+        bar.style.width = `${Math.max(0, item.value / scaleMaximum * 100)}%`;
         track.append(bar);
         const value = document.createElement("span");
         value.className = "chart-value";
-        value.textContent = `${item.value}${chart.unit ? ` ${chart.unit}` : ""}`;
+        value.textContent = item.display_value || formatAxisValue(item.value);
         row.append(name, track, value);
         list.append(row);
       }
       figure.append(list);
+      const axis = document.createElement("div");
+      axis.className = "chart-axis";
+      const zero = document.createElement("span");
+      zero.textContent = formatAxisValue(0);
+      const maximumLabel = document.createElement("span");
+      maximumLabel.textContent = formatAxisValue(scaleMaximum);
+      axis.append(zero, maximumLabel);
+      figure.append(axis);
       if (chart.source_label) {
         const caption = document.createElement("p");
         caption.className = "chart-caption";
-        caption.textContent = `Source: ${chart.source_label}`;
+        caption.textContent = `Source: ${chart.source_label} · single-fund source value`;
         figure.append(caption);
       }
       container.append(figure);
+    }
+
+    function appendMetricCard(metric, citations, container) {
+      if (!metric || typeof metric.label !== "string"
+          || typeof metric.display_value !== "string"
+          || typeof metric.value !== "number" || !Number.isFinite(metric.value)
+          || !Array.isArray(citations) || !citations.some((item) => safeHttpUrl(item.url))) return;
+      const card = document.createElement("section");
+      card.className = "metric-card";
+      card.setAttribute("aria-label", `${metric.label}: ${metric.display_value}`);
+      const label = document.createElement("p");
+      label.className = "metric-label";
+      label.textContent = metric.label;
+      const value = document.createElement("p");
+      value.className = "metric-value";
+      value.textContent = metric.display_value;
+      const source = document.createElement("p");
+      source.className = "metric-source";
+      source.textContent = "From the cited source";
+      card.append(label, value, source);
+      container.append(card);
     }
 
     function appendAnswer(data, question) {
@@ -1076,8 +1148,14 @@ HOME_PAGE = r"""<!doctype html>
       }
       card.append(details);
       turn.append(card);
-      appendChart(data.chart, citations, turn);
-      appendFollowUps(question, turn);
+      if (data.metric || data.chart) {
+        const visuals = document.createElement("div");
+        visuals.className = "fact-visuals";
+        appendMetricCard(data.metric, citations, visuals);
+        appendChart(data.chart, citations, visuals);
+        if (visuals.childElementCount) turn.append(visuals);
+      }
+      appendFollowUps(data, turn);
       messages.append(turn);
       messages.scrollTop = messages.scrollHeight;
     }
@@ -1093,26 +1171,40 @@ HOME_PAGE = r"""<!doctype html>
       messages.append(failure);
     }
 
-    async function submitQuestion(rawQuestion) {
+    async function submitQuestion(rawQuestion, suggestionButton = null) {
       const question = rawQuestion.trim();
       const conversation = activeConversation();
       if (!question || !conversation || conversation.pending) return;
 
-      questionField.value = "";
+      const context = conversation.turns
+        .find((turn) => turn.response && !["rejected", "refused"].includes(turn.response.status))
+        ?.question || "";
       const turn = { question, response: null };
-      conversation.turns.push(turn);
-      conversation.pending = true;
-      if (conversation.turns.length === 1) {
-        conversation.title = question.length > 28 ? `${question.slice(0, 27)}…` : question;
+      let transitionUpdate = null;
+      const beginSubmission = () => {
+        questionField.value = "";
+        conversation.turns.push(turn);
+        conversation.pending = true;
+        if (conversation.turns.length === 1) {
+          conversation.title = question.length > 28 ? `${question.slice(0, 27)}…` : question;
+        }
+        renderConversation();
+      };
+      const firstSuggestion = suggestionButton && conversation.turns.length === 0;
+      if (firstSuggestion && typeof document.startViewTransition === "function"
+          && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        transitionUpdate = document.startViewTransition(beginSubmission).updateCallbackDone;
+      } else {
+        beginSubmission();
       }
-      renderConversation();
       const conversationId = conversation.id;
 
       try {
+        if (transitionUpdate) await transitionUpdate;
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question })
+          body: JSON.stringify({ question, context })
         });
         if (!response.ok) throw new Error("The request could not be completed. Please try again.");
         turn.response = await response.json();
@@ -1131,12 +1223,12 @@ HOME_PAGE = r"""<!doctype html>
     });
 
     document.querySelectorAll("[data-question]").forEach((button) => {
-      button.addEventListener("click", () => submitQuestion(button.dataset.question || ""));
+      button.addEventListener("click", () => submitQuestion(button.dataset.question || "", button));
     });
 
     messages.addEventListener("click", (event) => {
       const button = event.target.closest("[data-question]");
-      if (button) submitQuestion(button.dataset.question || "");
+      if (button) submitQuestion(button.dataset.question || "", button);
     });
 
     document.getElementById("new-conversation").addEventListener("click", () => {

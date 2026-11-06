@@ -14,6 +14,7 @@ app = FastAPI(title="Chatterbox", description="Facts-only HDFC mutual fund FAQ a
 
 class ChatRequest(BaseModel):
     question: str
+    context: str = ""
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -28,4 +29,6 @@ def health() -> dict[str, str]:
 
 @app.post("/api/chat")
 def chat(request: ChatRequest) -> dict:
+    if request.context.strip():
+        return answer_question(request.question, context=request.context)
     return answer_question(request.question)

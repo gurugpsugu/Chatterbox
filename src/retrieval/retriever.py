@@ -99,14 +99,142 @@ def _select_registry_source(
     return best_source
 
 
-def _live_source_evidence(question: str, registry_path: Path = DEFAULT_REGISTRY) -> list[dict[str, Any]]:
-    source = _select_registry_source(question, registry_path)
+def _extract_numeric_facts(lines: list[str]) -> list[dict[str, Any]]:
+    fact_fields = (
+        (
+            "minimum_sip",
+            "Minimum SIP",
+            re.compile(r"\bmin(?:imum)?\.?\s+(?:for\s+)?sip\b", re.IGNORECASE),
+            "₹",
+        ),
+        (
+            "aum",
+            "Fund size (AUM)",
+            re.compile(r"\b(?:fund\s+size|aum)\b", re.IGNORECASE),
+            "₹ Cr",
+        ),
+        (
+            "expense_ratio",
+            "Expense ratio",
+            re.compile(r"\bexpense\s+ratio\b", re.IGNORECASE),
+            "%",
+        ),
+        (
+            "nav",
+            "NAV",
+            re.compile(r"\bnav\b", re.IGNORECASE),
+            "₹",
+        ),
+    )
+    facts: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    value_pattern = re.compile(
+        r"₹\s*([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)\s*(%|Cr)(?![a-z])",
+        re.IGNORECASE,
+    )
+    for index, line in enumerate(lines):
+        for key, label, label_pattern, default_unit in fact_fields:
+            if key in seen or not label_pattern.search(line):
+                continue
+            value_text = line
+            if not value_pattern.search(value_text) and index + 1 < len(lines):
+                value_text = lines[index + 1]
+            match = value_pattern.search(value_text)
+            if not match:
+                continue
+            numeric_text = match.group(1) or match.group(2)
+            unit = match.group(3) or default_unit
+            if default_unit == "₹ Cr":
+                unit = "₹ Cr"
+            elif match.group(1):
+                unit = default_unit
+            value = float(numeric_text.replace(",", ""))
+            display_number = f"{value:,.2f}".rstrip("0").rstrip(".")
+            if unit == "₹":
+                display_value = f"₹{display_number}"
+            elif unit == "₹ Cr":
+                display_value = f"₹{display_number} Cr"
+            elif unit == "%":
+                display_value = f"{display_number}%"
+            else:
+                display_value = f"{display_number} {unit}".strip()
+            facts.append({
+                "key": key,
+                "label": label,
+                "value": value,
+                "unit": unit,
+                "display_value": display_value,
+            })
+            seen.add(key)
+    return facts
+
+
+def _requested_fact_key(question: str) -> str | None:
+    lowered = question.lower()
+    if "expense ratio" in lowered or "total expense ratio" in lowered:
+        return "expense_ratio"
+    if "sip" in lowered and any(term in lowered for term in ("minimum", "min.", "min ")):
+        return "minimum_sip"
+    if "aum" in lowered or "fund size" in lowered:
+        return "aum"
+    if re.search(r"\bnav\b", lowered):
+        return "nav"
+    return None
+
+
+def _suggest_numeric_follow_ups(
+    source_title: str,
+    facts: list[dict[str, Any]],
+    current_fact_key: str | None,
+) -> list[str]:
+    questions = {
+        "minimum_sip": f"What is the minimum SIP for {source_title}?",
+        "aum": f"What is the fund size (AUM) of {source_title}?",
+        "expense_ratio": f"What is the expense ratio of {source_title}?",
+        "nav": f"What is the latest NAV for {source_title}?",
+    }
+    return [
+        questions[fact["key"]]
+        for fact in facts
+        if fact["key"] != current_fact_key and fact["key"] in questions
+    ][:2]
+
+
+def _chart_for_fact(fact: dict[str, Any], source_title: str) -> dict[str, Any]:
+    value = float(fact["value"])
+    magnitude = 10 ** math.floor(math.log10(value)) if value > 0 else 1
+    scale_max = next(
+        multiplier * magnitude
+        for multiplier in (1, 1.25, 1.5, 2, 2.5, 5, 10)
+        if multiplier * magnitude >= value * 1.2
+    )
+    return {
+        "verified": True,
+        "title": f"{fact['label']} — {source_title}",
+        "unit": fact["unit"],
+        "scale_max": scale_max,
+        "source_label": source_title,
+        "data": [{
+            "label": fact["label"],
+            "value": value,
+            "display_value": fact["display_value"],
+        }],
+    }
+
+
+def _live_source_evidence(
+    question: str,
+    registry_path: Path = DEFAULT_REGISTRY,
+    context: str = "",
+) -> list[dict[str, Any]]:
+    source_query = " ".join(part for part in (question, context) if part)
+    source = _select_registry_source(source_query, registry_path)
     if source is None:
         return []
 
     text = _fetch_source_text(source["url"])
     lines = [line.strip() for line in text.splitlines() if line.strip()]
-    query_terms = set(re.findall(r"[a-z0-9]+", question.lower())) - GENERIC_QUERY_TERMS
+    query_terms = set(re.findall(r"[a-z0-9]+", source_query.lower())) - GENERIC_QUERY_TERMS
     if not lines or not query_terms:
         return []
 
@@ -117,21 +245,19 @@ def _live_source_evidence(question: str, registry_path: Path = DEFAULT_REGISTRY)
     if not important_terms:
         important_terms = query_terms
 
-    requested_field = None
-    if {"expense", "ratio"} <= query_terms:
-        requested_field = re.compile(r"\bexpense\s+ratio\b", re.IGNORECASE)
-    elif "sip" in query_terms and "minimum" in query_terms:
-        requested_field = re.compile(r"\bmin(?:imum)?\.?\s+(?:for\s+)?sip\b", re.IGNORECASE)
-    value_pattern = re.compile(r"(?:₹\s*[\d,]+(?:\.\d+)?|\b\d+(?:\.\d+)?\s*%)")
-
+    requested_fact_key = _requested_fact_key(question)
+    facts = _extract_numeric_facts(lines)
+    requested_fact = next(
+        (fact for fact in facts if fact["key"] == requested_fact_key),
+        None,
+    )
     best_window: list[str] = []
     best_score = 0
-    if requested_field is not None:
-        for index, line in enumerate(lines[:-1]):
-            if requested_field.search(line) and value_pattern.search(lines[index + 1]):
-                best_window = [line, lines[index + 1]]
-                best_score = 4
-                break
+    if requested_fact is not None:
+        best_window = [requested_fact["label"], requested_fact["display_value"]]
+        best_score = 4
+    elif requested_fact_key is not None:
+        return []
 
     if not best_window:
         for index in range(len(lines)):
@@ -148,7 +274,7 @@ def _live_source_evidence(question: str, registry_path: Path = DEFAULT_REGISTRY)
     if not best_window or best_score < 4:
         return []
 
-    return [{
+    evidence = {
         "chunk_id": f"live-{source['source_id']}",
         "source_id": source["source_id"],
         "title": source["title"],
@@ -157,7 +283,11 @@ def _live_source_evidence(question: str, registry_path: Path = DEFAULT_REGISTRY)
         "retrieved_at": datetime.now(timezone.utc).isoformat(),
         "heading_path": [],
         "score": float(best_score),
-    }]
+        "facts": facts,
+    }
+    if requested_fact is not None:
+        evidence["metric"] = requested_fact
+    return [evidence]
 
 
 SENSITIVE_PATTERNS = [
@@ -262,6 +392,7 @@ def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
 def retrieve_chunks(
     question: str,
     *,
+    context: str = "",
     chunks_dir: Path = DEFAULT_CHUNKS_DIR,
     embeddings_dir: Path = DEFAULT_EMBEDDINGS_DIR,
     top_k: int = 5,
@@ -274,7 +405,10 @@ def retrieve_chunks(
     if not screen["allowed"]:
         raise ValueError(screen["reason"])
 
-    query = screen["normalized"]
+    context_screen = screen_question(context) if context else {"allowed": True, "normalized": ""}
+    if not context_screen["allowed"]:
+        raise ValueError(context_screen["reason"])
+    query = " ".join(part for part in (screen["normalized"], context_screen["normalized"]) if part)
     candidates: list[dict[str, Any]] = []
     embedding_index = _load_embedding_index(embeddings_dir)
     if not embedding_index:
@@ -292,7 +426,11 @@ def retrieve_chunks(
             if not isinstance(live_source_fallback, bool):
                 raise ValueError("retrieval.live_source_fallback must be a boolean")
         if live_source_fallback:
-            return _live_source_evidence(query, registry_path)
+            return _live_source_evidence(
+                screen["normalized"],
+                registry_path,
+                context_screen["normalized"],
+            )
         return []
 
     try:
@@ -377,25 +515,66 @@ def build_answer(question: str, evidence: list[dict[str, Any]] | None = None) ->
         }
 
     text = evidence_list[0]["text"]
-    cleaned = " ".join(text.split())
-    if len(cleaned) > 220:
-        cleaned = cleaned[:220].rstrip() + "..."
+    source_title = str(evidence_list[0].get("title") or "the available source")
+    facts: list[dict[str, Any]] = []
+    for evidence_item in evidence_list:
+        evidence_facts = evidence_item.get("facts")
+        if isinstance(evidence_facts, list):
+            facts.extend(
+                fact for fact in evidence_facts
+                if isinstance(fact, dict) and isinstance(fact.get("key"), str)
+            )
+        else:
+            facts.extend(_extract_numeric_facts(
+                [line.strip() for line in str(evidence_item.get("text", "")).splitlines() if line.strip()]
+            ))
+    deduplicated_facts = {fact["key"]: fact for fact in facts}
+    current_fact_key = _requested_fact_key(question)
+    metric = deduplicated_facts.get(current_fact_key) if current_fact_key else None
+    if metric is None and current_fact_key:
+        for evidence_item in evidence_list:
+            extracted = _extract_numeric_facts(
+                [line.strip() for line in str(evidence_item.get("text", "")).splitlines() if line.strip()]
+            )
+            metric = next((fact for fact in extracted if fact["key"] == current_fact_key), None)
+            if metric:
+                source_title = str(evidence_item.get("title") or source_title)
+                break
 
-    answer = f"I found this in the available source material: {cleaned}."
+    cleaned = " ".join(text.split())
+    if metric:
+        answer = f"The {metric['label'].lower()} shown for {source_title} is {metric['display_value']}."
+    else:
+        if len(cleaned) > 220:
+            cleaned = cleaned[:220].rstrip() + "..."
+        answer = f"I found this in the available source material: {cleaned}."
+
     times = [item.get("retrieved_at") for item in evidence_list if item.get("retrieved_at")]
     last_updated = max(times) if times else None
     citations = _citations_for_evidence(evidence_list)
-    return {
+    response: dict[str, Any] = {
         "status": "answered",
         "answer": answer,
         "citations": citations,
         "last_updated_from_sources": last_updated,
     }
+    if metric:
+        response["metric"] = metric
+        response["chart"] = _chart_for_fact(metric, source_title)
+    follow_ups = _suggest_numeric_follow_ups(
+        source_title,
+        list(deduplicated_facts.values()),
+        current_fact_key,
+    )
+    if follow_ups:
+        response["follow_ups"] = follow_ups
+    return response
 
 
 def answer_question(
     question: str,
     *,
+    context: str = "",
     chunks_dir: Path = DEFAULT_CHUNKS_DIR,
     embeddings_dir: Path = DEFAULT_EMBEDDINGS_DIR,
     top_k: int = 5,
@@ -407,9 +586,12 @@ def answer_question(
     screen = screen_question(question)
     if not screen["allowed"]:
         return build_answer(question)
+    if context and not screen_question(context)["allowed"]:
+        return build_answer(context)
 
     evidence = retrieve_chunks(
         question,
+        context=context,
         chunks_dir=chunks_dir,
         embeddings_dir=embeddings_dir,
         top_k=top_k,
