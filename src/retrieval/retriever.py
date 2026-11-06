@@ -20,7 +20,7 @@ DEFAULT_EMBEDDINGS_DIR = PROJECT_ROOT / "data" / "embeddings"
 DEFAULT_SETTINGS = PROJECT_ROOT / "config" / "settings.json"
 DEFAULT_REGISTRY = PROJECT_ROOT / "config" / "sources.json"
 FALLBACK_CITATION = "https://www.sebi.gov.in/"
-LIVE_SOURCE_TIMEOUT_SECONDS = 8
+LIVE_SOURCE_TIMEOUT_SECONDS = 3
 MAX_SOURCE_BYTES = 4 * 1024 * 1024
 GENERIC_QUERY_TERMS = {
     "a", "an", "and", "about", "can", "does", "do", "find", "for", "fund",

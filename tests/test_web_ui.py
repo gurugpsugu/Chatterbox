@@ -56,6 +56,14 @@ class WebUiTests(unittest.TestCase):
             context="What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
         )
 
+    def test_chat_endpoint_returns_service_unavailable_for_source_runtime_errors(self):
+        request = web_app.ChatRequest(question="What is the expense ratio of SBI Large Cap?")
+        with patch.object(web_app, "answer_question", side_effect=RuntimeError("source timeout")):
+            with self.assertRaises(web_app.HTTPException) as error:
+                web_app.chat(request)
+        self.assertEqual(error.exception.status_code, 503)
+        self.assertIn("source lookup", error.exception.detail)
+
     def test_fund_catalog_endpoint_exposes_categories_amcs_and_validated_sources(self):
         catalog = web_app.fund_catalog()
 
@@ -88,6 +96,11 @@ class WebUiTests(unittest.TestCase):
         self.assertEqual(evidence[0]["publisher"], "Groww")
         fetch.assert_any_call(selected[0]["url"])
         fetch.assert_any_call(selected[1]["url"])
+
+    def test_live_source_fetch_timeout_is_bounded_for_serverless_requests(self):
+        from src.retrieval.retriever import LIVE_SOURCE_TIMEOUT_SECONDS
+
+        self.assertEqual(LIVE_SOURCE_TIMEOUT_SECONDS, 3)
 
     def test_indexed_retrieval_prioritizes_official_source_over_better_matching_fallback(self):
         question = "What is the expense ratio of SBI Small Cap Fund Direct Growth?"
@@ -246,6 +259,8 @@ class WebUiTests(unittest.TestCase):
         self.assertIn("conversation.fundId = suggestionButton.dataset.fundId", HOME_PAGE)
         self.assertIn("for (const input of [calculatorMonthly, calculatorYears])", HOME_PAGE)
         self.assertNotIn("fund.return", HOME_PAGE)
+        self.assertIn("errorData.detail", HOME_PAGE)
+        self.assertIn("The request timed out or the connection was interrupted.", HOME_PAGE)
 
     def test_metric_visuals_are_animated_and_colors_do_not_signal_suitability(self):
         self.assertIn("animateMetricValue(value, metric, response)", HOME_PAGE)

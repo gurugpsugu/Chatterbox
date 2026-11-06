@@ -120,6 +120,12 @@ def fund_performance(fund_id: str) -> dict[str, Any]:
 
 @app.post("/api/chat")
 def chat(request: ChatRequest) -> dict:
-    if request.context.strip():
-        return answer_question(request.question, context=request.context)
-    return answer_question(request.question)
+    try:
+        if request.context.strip():
+            return answer_question(request.question, context=request.context)
+        return answer_question(request.question)
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="The approved source lookup failed or timed out. Please try again.",
+        ) from error

@@ -1843,10 +1843,24 @@ HOME_PAGE = r"""<!doctype html>
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question, context })
         });
-        if (!response.ok) throw new Error("The request could not be completed. Please try again.");
+        if (!response.ok) {
+          let message = `The request failed (${response.status}). Please try again.`;
+          try {
+            const errorData = await response.json();
+            if (typeof errorData.detail === "string" && errorData.detail.trim()) {
+              message = errorData.detail;
+            }
+          } catch {
+            // Keep the generic message when the server does not return JSON.
+          }
+          throw new Error(message);
+        }
         turn.response = await response.json();
       } catch (error) {
-        turn.response = { error: error.message || "Sorry, that request didn’t go through. Please try again." };
+        const message = error.name === "TypeError"
+          ? "The request timed out or the connection was interrupted. Please try again."
+          : error.message || "Sorry, that request didn’t go through. Please try again.";
+        turn.response = { error: message };
       } finally {
         const completedConversation = conversations.find((item) => item.id === conversationId);
         if (completedConversation) completedConversation.pending = false;
