@@ -20,7 +20,10 @@ Chatterbox is a small, inspectable mutual-fund FAQ assistant built around a publ
 3. Add provider settings locally:
    - Copy `.env.example` to `.env`
    - Set `GROQ_API_KEY` if you want to enable an external LLM provider
-4. Run the ingestion or retrieval stages as needed:
+4. Run the local web UI:
+   - `python -m uvicorn app:app --reload`
+   - Open `http://127.0.0.1:8000`
+5. Run the ingestion stages as needed:
    - `python src\loading\scrape_sources.py`
    - `python src\loading\load_documents.py`
    - `python src\chunking\chunk_documents.py`
@@ -39,8 +42,9 @@ The default vector-store configuration is ChromaDB under `data/chroma/`.
 
 ## Demo behavior
 
-The project includes a minimal console UI in `src/ui/app.py` and retrieval logic in `src/retrieval/retriever.py`.
-For Vercel, `app.py` exposes a small FastAPI web UI and `/api/chat` endpoint. Set the project root to the repository root and use Vercel's Python runtime detection.
+The project includes a responsive web UI in `src/ui/web_page.py`, served by the FastAPI entrypoint in `app.py`. It offers selectable starter questions, source links when returned by the assistant, and the exact disclaimer “Facts-only. No investment advice.” The console UI remains available through `python -m src.ui.app`.
+
+For Vercel, set the project root to the repository root and use Vercel's Python runtime detection for the FastAPI entrypoint.
 
 The assistant:
 

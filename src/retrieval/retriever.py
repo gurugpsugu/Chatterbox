@@ -116,17 +116,6 @@ def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
-def _token_overlap_score(query: str, text: str) -> float:
-    query_tokens = {token.lower() for token in re.findall(r"[a-z0-9]+", query) if token}
-    text_tokens = {token.lower() for token in re.findall(r"[a-z0-9]+", text) if token}
-    if not query_tokens or not text_tokens:
-        return 0.0
-    overlap = query_tokens & text_tokens
-    if not overlap:
-        return 0.0
-    return len(overlap) / max(len(query_tokens | text_tokens), 1)
-
-
 def retrieve_chunks(
     question: str,
     *,
@@ -142,26 +131,24 @@ def retrieve_chunks(
     query = screen["normalized"]
     candidates: list[dict[str, Any]] = []
     embedding_index = _load_embedding_index(embeddings_dir)
-    vector_query: list[float] | None = None
+    if not embedding_index:
+        return []
 
-    if embedding_index:
-        try:
-            vector_query = embed_query(query)
-        except Exception:
-            vector_query = None
+    try:
+        vector_query = embed_query(query)
+    except Exception as error:
+        raise RuntimeError(f"Unable to embed question for retrieval: {error}") from error
 
     for artifact in _iter_chunk_artifacts(chunks_dir):
         for chunk in artifact.get("chunks", []):
             if not isinstance(chunk, dict):
                 continue
             text = str(chunk.get("text", "")).strip()
-            if not text:
+            chunk_id = chunk.get("chunk_id")
+            vector = embedding_index.get(chunk_id) if isinstance(chunk_id, str) else None
+            if not text or vector is None:
                 continue
-            score = 0.0
-            if vector_query is not None and chunk.get("chunk_id") in embedding_index:
-                score = _cosine_similarity(vector_query, embedding_index[chunk["chunk_id"]])
-            else:
-                score = _token_overlap_score(query, text)
+            score = _cosine_similarity(vector_query, vector)
 
             candidates.append(
                 {

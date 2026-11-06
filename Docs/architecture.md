@@ -105,6 +105,7 @@ Detection is a defense-in-depth measure, not a guarantee of identifying every po
 - Embeds the accepted question using the shared ingestion embedding configuration.
 - Queries the configured vector store for relevant chunks.
 - Applies a configurable relevance threshold or no-evidence rule; it must not force a low-quality match to appear relevant.
+- Does not substitute lexical overlap for vector retrieval when embeddings or query embedding are unavailable; return no evidence or surface the embedding error instead.
 - Assembles a bounded evidence packet containing chunk text, source identity, citation URL, and freshness metadata.
 - Makes retrieved chunk IDs and scores inspectable without retaining the raw user question.
 
@@ -135,7 +136,11 @@ The adapter:
 
 ### 4.10 Presentation layer
 
-A minimal UI provides a welcome line, three example questions, a question input, an answer area with a clear source link and “Last updated from sources:” field, and the required disclaimer: **“Facts-only. No investment advice.”**
+The Vercel-compatible web UI is served by the FastAPI app and calls the same server-side `/api/chat` path as the query flow. The UI direction is based on the Stitch design export in `stitch_chatterbox_hdfc_assistant.zip`: a restrained white/off-white surface, graphite typography, muted grey/sage accents, a subtle dot-matrix motif, monospaced micro-labels, and quiet transitions. This is a visual reference, not a source for factual product claims or an exact reproduction of another product's identity.
+
+The initial screen provides a welcome message, three selectable question suggestions, the required disclaimer **“Facts-only. No investment advice.”**, a privacy reminder, and a labelled question form. Selecting a suggestion submits that question. After the first request, the welcome and suggestion area yields to an in-memory question/answer view with status, source links, and available source freshness. “Clear session” clears only the current page view; the UI does not claim that backend/provider infrastructure never logs requests.
+
+The UI must not display fabricated scheme counts, synchronization states, performance figures, latency claims, audit/compliance guarantees, or source details absent from the returned answer metadata. It must not infer that a citation is official merely because it is presented as a link. Citation URLs are rendered as links only when they use HTTP or HTTPS, and answer text is inserted as text rather than interpreted as markup. Motion is brief and restrained, with reduced-motion support and visible keyboard focus.
 
 The demo/inspection view should make the source, extracted text, chunk, embedding/model metadata, vector-store record, retrieved evidence, and final answer relationship easy to follow. It should not expose secrets, prohibited personal information, or unnecessary user-input history.
 

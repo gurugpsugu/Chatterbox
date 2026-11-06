@@ -75,6 +75,7 @@ Keep generated data, local environment files, and credentials out of version con
 
 - Screen questions before embedding or sending them to a provider. Reject likely PAN, Aadhaar, account numbers, OTPs, emails, and phone numbers without echoing, logging, or persisting them.
 - Retrieve a bounded set of relevant chunks from the configured vector database and apply a relevance threshold.
+- Do not silently use keyword overlap when corpus embeddings or query embedding are unavailable; return the no-evidence response or surface the embedding failure.
 - Use only eligible, sufficiently fresh evidence. If evidence is missing, weak, stale, or conflicting, say the fact could not be verified rather than guessing.
 - Route advice and personalized requests to a polite facts-only refusal. Do not calculate, compare, or summarize performance; direct users to an official factsheet where available.
 - For supported factual questions, generate answers from evidence only and limit them to three sentences. Build citations and “Last updated from sources:” from validated source metadata, not model output.
@@ -82,11 +83,15 @@ Keep generated data, local environment files, and credentials out of version con
 
 ### UI
 
-- Show a welcome line, three example questions, a question input, an answer area with citations and freshness, and the exact disclaimer: **“Facts-only. No investment advice.”**
-- Tell users not to submit personal identifiers or contact information.
-- Provide an inspection view linking answers to retrieved chunks and source metadata without exposing secrets or raw question history.
+- Implement the responsive FastAPI web UI using the Stitch export in `stitch_chatterbox_hdfc_assistant.zip` as a visual reference: white/off-white surfaces, graphite and muted grey/sage accents, restrained dot-matrix texture, monospaced micro-labels, fine borders, generous whitespace, and subtle transitions. Keep the identity original; do not copy another product's exact identity or interaction design.
+- Start with a welcome message and three clickable, prewritten factual question suggestions. Selecting one submits it as the first question; after the first request, transition to the in-memory question/answer view.
+- Include a labelled multiline question field, send/loading/error states, a reset action, clickable citation links, source freshness when returned, and the exact disclaimer: **“Facts-only. No investment advice.”**
+- Clearly tell users not to submit personal identifiers or contact information. Do not retain client-side conversation history after reset or page reload.
+- Render model/source text as text, allow only HTTP/HTTPS citation links, support keyboard focus and reduced motion, and adapt the layout for mobile.
+- Do not display Stitch mockup-only metrics or claims (such as indexed scheme counts, live sync, latency, audit guarantees, or sample fact values) unless the backend returns verified metadata that supports them.
+- Keep any inspection view linked to actual source/chunk metadata; do not expose secrets or raw question history.
 
-**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, and required UI content.
+**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, required UI content, suggestion submission, reset behavior, and safe citation rendering.
 
 ## 8. Edge cases and guardrail tests
 
@@ -115,4 +120,5 @@ Minimum automated coverage should include loading, chunk stability and provenanc
 - [ ] Ingestion and retrieval share embedding and vector-store configuration.
 - [ ] Personal information and raw user questions are not logged or persisted.
 - [ ] Answers and refusals follow source, freshness, privacy, and facts-only rules.
+- [ ] Responsive Stitch-inspired UI uses clickable starter questions, accessible chat states, safe citation rendering, and no fabricated status claims.
 - [ ] README, 15–25 curated source list, sample Q&A, and demo deliverables are prepared as required by the PRD.
