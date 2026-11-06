@@ -44,7 +44,7 @@ The default vector-store configuration is ChromaDB under `data/chroma/`.
 
 The project includes a responsive web UI in `src/ui/web_page.py`, served by the FastAPI entrypoint in `app.py`. It offers selectable starter questions, source links when returned by the assistant, and the exact disclaimer “Facts-only. No investment advice.” The console UI remains available through `python -m src.ui.app`.
 
-For Vercel, set the project root to the repository root and use Vercel's Python runtime detection for the FastAPI entrypoint.
+For Vercel, set the project root to the repository root. The `tool.vercel.entrypoint` setting in `pyproject.toml` explicitly points to the FastAPI app.
 
 The assistant:
 
