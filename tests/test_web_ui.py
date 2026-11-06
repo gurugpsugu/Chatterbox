@@ -140,15 +140,45 @@ class WebUiTests(unittest.TestCase):
     def test_suggestion_to_chat_transition_respects_reduced_motion(self):
         self.assertIn("document.startViewTransition(beginSubmission)", HOME_PAGE)
         self.assertIn("view-transition-name: conversation-panel", HOME_PAGE)
+        self.assertIn("@keyframes panel-pan-in", HOME_PAGE)
+        self.assertIn("@keyframes panel-pan-out", HOME_PAGE)
+        self.assertIn("@keyframes chat-arrive", HOME_PAGE)
         self.assertIn('prefers-reduced-motion: reduce', HOME_PAGE)
         self.assertIn("chatShell.classList.toggle(\"is-active\", hasTurns)", HOME_PAGE)
+
+    def test_selected_fund_shows_user_assumption_return_calculator(self):
+        self.assertIn('id="return-calculator"', HOME_PAGE)
+        self.assertIn('id="calculator-monthly"', HOME_PAGE)
+        self.assertIn('id="calculator-years"', HOME_PAGE)
+        self.assertIn('id="calculator-rate"', HOME_PAGE)
+        self.assertIn("Math.pow(1 + annualRate / 100, 1 / 12) - 1", HOME_PAGE)
+        self.assertIn("Actual returns may be lower, higher, or negative.", HOME_PAGE)
+        self.assertIn("conversation.fundId = suggestionButton.dataset.fundId", HOME_PAGE)
+        self.assertIn('input.addEventListener("input", renderReturnCalculator)', HOME_PAGE)
+        self.assertNotIn("fund.return", HOME_PAGE)
+
+    def test_metric_visuals_are_animated_and_colors_do_not_signal_suitability(self):
+        self.assertIn("animateMetricValue(value, metric, response)", HOME_PAGE)
+        self.assertIn("if (animatedMetricResponses.has(response))", HOME_PAGE)
+        self.assertIn("element.textContent = metric.display_value", HOME_PAGE)
+        self.assertIn("requestAnimationFrame(() => { bar.style.width = targetWidth; })", HOME_PAGE)
+        self.assertIn("Official AMC source", HOME_PAGE)
+        self.assertIn("Third-party source", HOME_PAGE)
+        self.assertIn("not a risk, performance, or suitability signal", HOME_PAGE)
+        self.assertNotIn("favorable enough to invest", HOME_PAGE)
+
+    def test_each_answer_has_non_advice_notice_and_visible_citations(self):
+        self.assertIn("Not an investment recommendation", HOME_PAGE)
+        self.assertIn("This response only reflects information available from the cited sources.", HOME_PAGE)
+        self.assertIn("details.open = citations.length > 0", HOME_PAGE)
+        self.assertIn('link.rel = "noopener noreferrer"', HOME_PAGE)
 
     def test_ui_only_renders_explicitly_verified_charts_with_citations(self):
         self.assertIn("chart.verified !== true", HOME_PAGE)
         self.assertIn("!Array.isArray(citations) || !citations.some((item) => safeHttpUrl(item.url))", HOME_PAGE)
         self.assertIn("Number.isFinite(item.value)", HOME_PAGE)
         self.assertIn("chart.data.length < 1", HOME_PAGE)
-        self.assertIn("appendMetricCard(data.metric, citations, visuals)", HOME_PAGE)
+        self.assertIn("appendMetricCard(data.metric, citations, visuals, data)", HOME_PAGE)
         self.assertIn("appendChart(data.chart, citations, visuals)", HOME_PAGE)
         self.assertIn("button.textContent = text", HOME_PAGE)
 

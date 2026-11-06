@@ -300,11 +300,12 @@ HOME_PAGE = r"""<!doctype html>
     .chat-shell.is-active {
       display: block;
       view-transition-name: conversation-panel;
+      animation: chat-arrive .58s cubic-bezier(.2,.8,.2,1) both;
     }
 
     ::view-transition-group(conversation-panel) { animation-duration: .55s; }
-    ::view-transition-old(conversation-panel) { animation: panel-out .35s ease both; }
-    ::view-transition-new(conversation-panel) { animation: panel-in .48s cubic-bezier(.2,.8,.2,1) both; }
+    ::view-transition-old(conversation-panel) { animation: panel-pan-out .38s cubic-bezier(.4,0,.2,1) both; }
+    ::view-transition-new(conversation-panel) { animation: panel-pan-in .58s cubic-bezier(.2,.8,.2,1) both; }
 
     .conversation-bar {
       display: flex;
@@ -392,6 +393,71 @@ HOME_PAGE = r"""<!doctype html>
       padding: 10px 16px;
     }
 
+    .return-calculator {
+      display: grid;
+      grid-template-columns: minmax(210px, .75fr) minmax(280px, 1.25fr);
+      gap: 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(115deg, #f8faf8, #fff 62%);
+      padding: 18px clamp(14px, 4vw, 28px);
+      animation: enter .35s ease-out both;
+    }
+
+    .calculator-copy h2 {
+      margin: 4px 0 7px;
+      color: var(--ink-strong);
+      font: 650 19px/1.2 var(--display);
+      letter-spacing: -.025em;
+    }
+
+    .calculator-copy p:last-child {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .calculator-fields {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+      align-content: start;
+    }
+
+    .calculator-field { display: grid; gap: 5px; }
+    .calculator-field label { color: var(--muted); font: 9px var(--mono); }
+
+    .calculator-field input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: white;
+      padding: 9px 10px;
+      color: var(--ink-strong);
+      font: 12px var(--mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .calculator-field input:focus-visible {
+      outline: 3px solid rgb(111 143 123 / 25%);
+      outline-offset: 2px;
+    }
+
+    .calculator-result {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .calculator-output { display: grid; gap: 3px; }
+    .calculator-output span { color: var(--quiet); font: 9px var(--mono); text-transform: uppercase; }
+    .calculator-output strong { color: var(--ink-strong); font: 600 14px var(--mono); font-variant-numeric: tabular-nums; }
+    .calculator-assumption { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 10px; }
+    .calculator-assumption strong { color: var(--ink-strong); }
+
     .chat-label {
       display: flex;
       align-items: center;
@@ -422,7 +488,7 @@ HOME_PAGE = r"""<!doctype html>
       display: grid;
       grid-template-columns: minmax(210px, .75fr) minmax(280px, 1.25fr);
       gap: 12px;
-      width: min(100%, 760px);
+      width: 100%;
     }
 
     .metric-card, .chart-card {
@@ -452,13 +518,52 @@ HOME_PAGE = r"""<!doctype html>
 
     .metric-source { margin: 0; color: var(--quiet); font-size: 10px; }
 
+    .metric-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 184px;
+    }
+
+    .metric-value { min-height: 1.1em; }
+
+    .source-mood {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 7px;
+      margin-top: 14px;
+      border: 1px solid #d5e5dc;
+      border-radius: 999px;
+      background: #f1f6f8;
+      padding: 5px 9px;
+      color: #39586d;
+      font: 9px var(--mono);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .source-mood.third-party {
+      border-color: #eadfc8;
+      background: #fbf6eb;
+      color: #755b2c;
+    }
+
+    .source-mood::before {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
     .chart-card { margin: 0; }
     .chart-title { margin: 0 0 18px; color: var(--ink-strong); font: 600 13px var(--display); }
     .chart-rows { display: grid; gap: 10px; }
     .chart-row { display: grid; grid-template-columns: minmax(85px, 30%) 1fr auto; align-items: center; gap: 9px; font-size: 11px; }
     .chart-name { overflow-wrap: anywhere; color: var(--muted); }
     .chart-track { height: 12px; overflow: hidden; border-radius: 999px; background: #e9ece9; }
-    .chart-bar { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7d9885, #526d5b); transition: width .45s ease; }
+    .chart-bar { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #91aa98, #526d5b); transition: width .9s cubic-bezier(.2,.8,.2,1); }
     .chart-value { color: var(--ink-strong); font: 11px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .chart-axis { display: flex; justify-content: space-between; margin: 8px 0 0; color: var(--quiet); font: 9px var(--mono); }
     .chart-caption { margin: 12px 0 0; color: var(--muted); font-size: 10px; }
@@ -571,6 +676,26 @@ HOME_PAGE = r"""<!doctype html>
 
     .answer-text { margin: 0; color: var(--ink-strong); white-space: pre-wrap; overflow-wrap: anywhere; }
     .answer-extra { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+
+    .non-advice {
+      margin: 13px 0 0;
+      border: 1px solid #d8ded9;
+      border-left: 4px solid #596b5f;
+      border-radius: 5px 9px 9px 5px;
+      background: #f5f7f5;
+      padding: 11px 13px;
+      color: #303833;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .non-advice strong {
+      display: block;
+      margin-bottom: 2px;
+      font: 700 10px var(--mono);
+      letter-spacing: .055em;
+      text-transform: uppercase;
+    }
 
     .source-details {
       margin-top: 13px;
@@ -694,13 +819,23 @@ HOME_PAGE = r"""<!doctype html>
       to { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes panel-out {
-      to { opacity: 0; filter: blur(3px); transform: scale(.97) translateY(-10px); }
+    @keyframes panel-pan-out {
+      to { opacity: 0; filter: blur(3px); transform: scale(.94) translateY(-24px); clip-path: inset(0 3% 12% round 24px); }
     }
 
-    @keyframes panel-in {
-      from { opacity: 0; filter: blur(3px); transform: scale(.985) translateY(12px); }
-      to { opacity: 1; filter: blur(0); transform: scale(1) translateY(0); }
+    @keyframes panel-pan-in {
+      from { opacity: 0; filter: blur(3px); transform: scale(.92) translateY(42px); clip-path: inset(0 7% 9% round 28px); }
+      to { opacity: 1; filter: blur(0); transform: scale(1) translateY(0); clip-path: inset(0 0 0 round 14px); }
+    }
+
+    @keyframes chat-arrive {
+      from { opacity: 0; transform: translateY(20px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes metric-count-in {
+      from { opacity: .45; transform: translateY(8px) scale(.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     @keyframes dot {
@@ -711,6 +846,7 @@ HOME_PAGE = r"""<!doctype html>
     @media (max-width: 720px) {
       .suggestion-grid { grid-template-columns: 1fr; }
       .fact-visuals { grid-template-columns: 1fr; }
+      .return-calculator { grid-template-columns: 1fr; }
       .suggestion { min-height: 105px; }
       .welcome { padding-top: 56px; }
       .welcome::after { top: 18px; right: -14px; opacity: .5; }
@@ -742,6 +878,9 @@ HOME_PAGE = r"""<!doctype html>
       ::view-transition-group(conversation-panel),
       ::view-transition-old(conversation-panel),
       ::view-transition-new(conversation-panel) { animation: none !important; }
+
+      .chat-shell.is-active { animation: none !important; }
+      .chart-bar { transition: none !important; }
     }
   </style>
 </head>
@@ -801,6 +940,30 @@ HOME_PAGE = r"""<!doctype html>
         <span class="chat-label"><span class="status-dot" aria-hidden="true"></span> Question console</span>
         <button class="reset" id="reset" type="button" hidden>Clear chat</button>
       </div>
+      <section class="return-calculator" id="return-calculator" aria-labelledby="calculator-title" hidden>
+        <div class="calculator-copy">
+          <p class="micro-label">Illustrative calculator · not a forecast</p>
+          <h2 id="calculator-title">Explore a hypothetical return</h2>
+          <p id="calculator-fund-name"></p>
+        </div>
+        <div class="calculator-fields">
+          <div class="calculator-field">
+            <label for="calculator-monthly">Monthly investment (₹)</label>
+            <input id="calculator-monthly" type="number" min="1" max="10000000" step="500" inputmode="decimal" placeholder="Enter amount">
+          </div>
+          <div class="calculator-field">
+            <label for="calculator-years">Time horizon (years)</label>
+            <input id="calculator-years" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="1–50">
+          </div>
+          <div class="calculator-field">
+            <label for="calculator-rate">Assumed annual return (%)</label>
+            <input id="calculator-rate" type="number" min="0" max="30" step="0.5" inputmode="decimal" placeholder="Your assumption">
+          </div>
+          <div class="calculator-result" id="calculator-result" aria-live="polite">
+            <p class="calculator-assumption">Enter your assumptions to see an illustration. This does not use or predict this fund’s returns.</p>
+          </div>
+        </div>
+      </section>
       <div class="messages" id="messages" role="tabpanel" aria-live="polite" aria-relevant="additions"></div>
       <form class="composer" id="chat-form">
         <div class="composer-row">
@@ -851,6 +1014,109 @@ HOME_PAGE = r"""<!doctype html>
     let activeConversationId = 1;
     let activeSpeechButton = null;
     let fundCatalog = [];
+    const animatedMetricResponses = new WeakSet();
+    const returnCalculator = document.getElementById("return-calculator");
+    const calculatorFundName = document.getElementById("calculator-fund-name");
+    const calculatorMonthly = document.getElementById("calculator-monthly");
+    const calculatorYears = document.getElementById("calculator-years");
+    const calculatorRate = document.getElementById("calculator-rate");
+    const calculatorResult = document.getElementById("calculator-result");
+
+    function renderReturnCalculator() {
+      const conversation = activeConversation();
+      const selectedFund = fundCatalog.find((fund) => fund.fund_id === (conversation && conversation.fundId));
+      returnCalculator.hidden = !selectedFund;
+      if (!selectedFund) return;
+      calculatorFundName.textContent = selectedFund.name;
+
+      const monthly = Number(calculatorMonthly.value);
+      const years = Number(calculatorYears.value);
+      const annualRate = Number(calculatorRate.value);
+      const valid = calculatorMonthly.value !== "" && calculatorYears.value !== ""
+        && calculatorRate.value !== ""
+        && Number.isFinite(monthly) && monthly > 0 && monthly <= 10000000
+        && Number.isInteger(years) && years >= 1 && years <= 50
+        && Number.isFinite(annualRate) && annualRate >= 0 && annualRate <= 30;
+      calculatorResult.replaceChildren();
+      if (!valid) {
+        const prompt = document.createElement("p");
+        prompt.className = "calculator-assumption";
+        prompt.textContent = "Enter a monthly amount, 1–50 years, and an assumed rate from 0–30%.";
+        calculatorResult.append(prompt);
+        return;
+      }
+
+      const months = years * 12;
+      const monthlyRate = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
+      const invested = monthly * months;
+      const estimate = monthlyRate === 0
+        ? invested
+        : monthly * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+      const items = [
+        ["Illustrative value", estimate],
+        ["Total contributed", invested],
+        ["Illustrative difference", estimate - invested],
+      ];
+      const currency = new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+      });
+      for (const [label, amount] of items) {
+        const output = document.createElement("div");
+        output.className = "calculator-output";
+        const outputLabel = document.createElement("span");
+        outputLabel.textContent = label;
+        const value = document.createElement("strong");
+        value.textContent = currency.format(amount);
+        output.append(outputLabel, value);
+        calculatorResult.append(output);
+      }
+      const assumption = document.createElement("p");
+      assumption.className = "calculator-assumption";
+      const emphasis = document.createElement("strong");
+      emphasis.textContent = "Illustration only.";
+      assumption.append(emphasis, document.createTextNode(
+        " Assumes month-end contributions and monthly compounding at your entered rate; excludes fees and taxes. " +
+        "Actual returns may be lower, higher, or negative. This is not a forecast or investment recommendation."
+      ));
+      calculatorResult.append(assumption);
+    }
+
+    function animateMetricValue(element, metric, response) {
+      if (animatedMetricResponses.has(response)) {
+        element.textContent = metric.display_value;
+        return;
+      }
+      animatedMetricResponses.add(response);
+      const formatted = metric.display_value.match(/^([^0-9+-]*)([-+]?\d[\d,]*(?:\.\d+)?)(.*)$/);
+      if (!formatted || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        element.textContent = metric.display_value;
+        return;
+      }
+      const prefix = formatted[1];
+      const suffix = formatted[3];
+      const decimals = (formatted[2].split(".")[1] || "").length;
+      const target = metric.value;
+      const formatter = new Intl.NumberFormat("en-IN", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+      const start = performance.now();
+      const duration = 1050;
+      element.classList.add("is-counting");
+      function tick(now) {
+        const progress = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - progress, 4);
+        element.textContent = `${prefix}${formatter.format(target * eased)}${suffix}`;
+        if (progress < 1) requestAnimationFrame(tick);
+        else {
+          element.textContent = metric.display_value;
+          element.classList.remove("is-counting");
+        }
+      }
+      requestAnimationFrame(tick);
+    }
 
     function renderFundCatalog() {
       const category = categoryFilter.value;
@@ -941,6 +1207,7 @@ HOME_PAGE = r"""<!doctype html>
       welcome.hidden = hasTurns;
       suggestions.hidden = hasTurns;
       chatShell.classList.toggle("is-active", hasTurns);
+      renderReturnCalculator();
     }
 
     function renderTabs() {
@@ -1091,7 +1358,8 @@ HOME_PAGE = r"""<!doctype html>
         track.setAttribute("aria-hidden", "true");
         const bar = document.createElement("span");
         bar.className = "chart-bar";
-        bar.style.width = `${Math.max(0, item.value / scaleMaximum * 100)}%`;
+        const targetWidth = `${Math.max(0, item.value / scaleMaximum * 100)}%`;
+        requestAnimationFrame(() => { bar.style.width = targetWidth; });
         track.append(bar);
         const value = document.createElement("span");
         value.className = "chart-value";
@@ -1117,7 +1385,7 @@ HOME_PAGE = r"""<!doctype html>
       container.append(figure);
     }
 
-    function appendMetricCard(metric, citations, container) {
+    function appendMetricCard(metric, citations, container, response) {
       if (!metric || typeof metric.label !== "string"
           || typeof metric.display_value !== "string"
           || typeof metric.value !== "number" || !Number.isFinite(metric.value)
@@ -1130,11 +1398,25 @@ HOME_PAGE = r"""<!doctype html>
       label.textContent = metric.label;
       const value = document.createElement("p");
       value.className = "metric-value";
-      value.textContent = metric.display_value;
+      value.textContent = "0";
       const source = document.createElement("p");
       source.className = "metric-source";
-      source.textContent = "From the cited source";
-      card.append(label, value, source);
+      source.textContent = "Source class only · not a risk, performance, or suitability signal";
+      const sourceType = citations.some((item) => item.source_type === "official_amc")
+        ? "official"
+        : citations.some((item) => ["third_party_fallback", "required_groww_target"]
+          .includes(item.source_type))
+          ? "third-party"
+          : "source";
+      const mood = document.createElement("span");
+      mood.className = `source-mood${sourceType === "third-party" ? " third-party" : ""}`;
+      mood.textContent = sourceType === "official"
+        ? "Official AMC source"
+        : sourceType === "third-party"
+          ? "Third-party source"
+          : "Cited source";
+      card.append(label, value, source, mood);
+      animateMetricValue(value, metric, response);
       container.append(card);
     }
 
@@ -1158,6 +1440,19 @@ HOME_PAGE = r"""<!doctype html>
       answer.className = "answer-text";
       answer.textContent = data.answer || "The assistant returned no answer.";
       card.append(answer);
+
+      const disclaimer = document.createElement("p");
+      disclaimer.className = "non-advice";
+      const disclaimerTitle = document.createElement("strong");
+      disclaimerTitle.textContent = "Not an investment recommendation";
+      disclaimer.append(
+        disclaimerTitle,
+        document.createTextNode(
+          "This response only reflects information available from the cited sources. " +
+          "It does not suggest whether you should invest."
+        )
+      );
+      card.append(disclaimer);
 
       const actions = document.createElement("div");
       actions.className = "answer-actions";
@@ -1213,6 +1508,7 @@ HOME_PAGE = r"""<!doctype html>
       const summary = document.createElement("summary");
       const citations = Array.isArray(data.citations) ? data.citations : [];
       summary.textContent = `Sources (${citations.length})`;
+      details.open = citations.length > 0;
       details.append(summary);
 
       if (citations.length) {
@@ -1248,7 +1544,7 @@ HOME_PAGE = r"""<!doctype html>
       if (data.metric || data.chart) {
         const visuals = document.createElement("div");
         visuals.className = "fact-visuals";
-        appendMetricCard(data.metric, citations, visuals);
+        appendMetricCard(data.metric, citations, visuals, data);
         appendChart(data.chart, citations, visuals);
         if (visuals.childElementCount) turn.append(visuals);
       }
@@ -1277,6 +1573,9 @@ HOME_PAGE = r"""<!doctype html>
         .find((turn) => turn.response && !["rejected", "refused"].includes(turn.response.status))
         ?.question || "";
       const turn = { question, response: null };
+      if (suggestionButton && suggestionButton.dataset.fundId) {
+        conversation.fundId = suggestionButton.dataset.fundId;
+      }
       let transitionUpdate = null;
       const beginSubmission = () => {
         questionField.value = "";
@@ -1390,6 +1689,7 @@ HOME_PAGE = r"""<!doctype html>
       activeSpeechButton = null;
       conversation.turns = [];
       conversation.title = "New chat";
+      conversation.fundId = null;
       questionField.value = "";
       renderConversation();
       questionField.focus();
@@ -1411,6 +1711,9 @@ HOME_PAGE = r"""<!doctype html>
       showReadAloudIntro = true;
     }
     if (showReadAloudIntro && typeof readAloudDialog.showModal === "function") readAloudDialog.showModal();
+    for (const input of [calculatorMonthly, calculatorYears, calculatorRate]) {
+      input.addEventListener("input", renderReturnCalculator);
+    }
     renderConversation();
   </script>
 </body>
