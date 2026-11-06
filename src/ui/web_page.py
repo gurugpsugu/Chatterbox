@@ -418,7 +418,7 @@ HOME_PAGE = r"""<!doctype html>
 
     .calculator-fields {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 9px;
       align-content: start;
     }
@@ -426,7 +426,7 @@ HOME_PAGE = r"""<!doctype html>
     .calculator-field { display: grid; gap: 5px; }
     .calculator-field label { color: var(--muted); font: 9px var(--mono); }
 
-    .calculator-field input {
+    .calculator-field input, .calculator-field select {
       width: 100%;
       min-width: 0;
       border: 1px solid var(--line-strong);
@@ -438,7 +438,7 @@ HOME_PAGE = r"""<!doctype html>
       font-variant-numeric: tabular-nums;
     }
 
-    .calculator-field input:focus-visible {
+    .calculator-field input:focus-visible, .calculator-field select:focus-visible {
       outline: 3px solid rgb(111 143 123 / 25%);
       outline-offset: 2px;
     }
@@ -457,6 +457,22 @@ HOME_PAGE = r"""<!doctype html>
     .calculator-output strong { color: var(--ink-strong); font: 600 14px var(--mono); font-variant-numeric: tabular-nums; }
     .calculator-assumption { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 10px; }
     .calculator-assumption strong { color: var(--ink-strong); }
+
+    .historical-visual { grid-column: 1 / -1; min-width: 0; border-top: 1px solid var(--line); padding-top: 13px; }
+    .historical-title { margin: 0 0 11px; color: var(--ink-strong); font: 600 12px var(--display); }
+    .historical-chart { display: grid; gap: 9px; }
+    .history-row { display: grid; grid-template-columns: minmax(62px, 12%) 1fr auto; align-items: center; gap: 10px; }
+    .history-period { color: var(--muted); font: 10px var(--mono); }
+    .history-track { position: relative; height: 13px; overflow: hidden; border-radius: 999px; background: #edf0ed; }
+    .history-zero { position: absolute; z-index: 1; top: 0; bottom: 0; width: 1px; background: #8c9490; }
+    .history-bar { position: absolute; top: 2px; height: 9px; border-radius: 999px; background: linear-gradient(90deg, #91aa98, #526d5b); transition: width .65s cubic-bezier(.2,.8,.2,1), left .65s cubic-bezier(.2,.8,.2,1); }
+    .history-return { min-width: 58px; color: var(--ink-strong); font: 10px var(--mono); text-align: right; }
+    .history-axis { position: relative; height: 15px; color: var(--quiet); font: 8px var(--mono); }
+    .history-axis span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+    .history-axis span:first-child { transform: none; }
+    .history-axis span:last-child { transform: translateX(-100%); }
+    .history-caption { margin: 10px 0 0; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+    .history-caption a { margin-left: 4px; }
 
     .chat-label {
       display: flex;
@@ -942,27 +958,30 @@ HOME_PAGE = r"""<!doctype html>
       </div>
       <section class="return-calculator" id="return-calculator" aria-labelledby="calculator-title" hidden>
         <div class="calculator-copy">
-          <p class="micro-label">Illustrative calculator · not a forecast</p>
-          <h2 id="calculator-title">Explore a hypothetical return</h2>
+          <p class="micro-label">Publisher data · historical illustration</p>
+          <h2 id="calculator-title">Explore reported return history</h2>
           <p id="calculator-fund-name"></p>
         </div>
         <div class="calculator-fields">
           <div class="calculator-field">
             <label for="calculator-monthly">Monthly investment (₹)</label>
-            <input id="calculator-monthly" type="number" min="1" max="10000000" step="500" inputmode="decimal" placeholder="Enter amount">
+            <input id="calculator-monthly" type="number" min="1" max="10000000" step="1" inputmode="decimal" placeholder="Enter amount">
           </div>
           <div class="calculator-field">
-            <label for="calculator-years">Time horizon (years)</label>
-            <input id="calculator-years" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="1–50">
-          </div>
-          <div class="calculator-field">
-            <label for="calculator-rate">Assumed annual return (%)</label>
-            <input id="calculator-rate" type="number" min="0" max="30" step="0.5" inputmode="decimal" placeholder="Your assumption">
+            <label for="calculator-period">Published period</label>
+            <select id="calculator-period" aria-label="Published historical period" disabled>
+              <option value="">Loading source history…</option>
+            </select>
           </div>
           <div class="calculator-result" id="calculator-result" aria-live="polite">
-            <p class="calculator-assumption">Enter your assumptions to see an illustration. This does not use or predict this fund’s returns.</p>
+            <p class="calculator-assumption">Loading historical values from the fund’s approved source pages…</p>
           </div>
         </div>
+        <figure class="historical-visual" aria-labelledby="historical-title">
+          <figcaption class="historical-title" id="historical-title">Historical returns reported by the source</figcaption>
+          <div class="historical-chart" id="historical-chart" aria-label="Historical return graph"></div>
+          <p class="history-caption" id="history-caption" aria-live="polite"></p>
+        </figure>
       </section>
       <div class="messages" id="messages" role="tabpanel" aria-live="polite" aria-relevant="additions"></div>
       <form class="composer" id="chat-form">
@@ -1014,13 +1033,101 @@ HOME_PAGE = r"""<!doctype html>
     let activeConversationId = 1;
     let activeSpeechButton = null;
     let fundCatalog = [];
+    const historicalPerformance = new Map();
     const animatedMetricResponses = new WeakSet();
     const returnCalculator = document.getElementById("return-calculator");
     const calculatorFundName = document.getElementById("calculator-fund-name");
     const calculatorMonthly = document.getElementById("calculator-monthly");
-    const calculatorYears = document.getElementById("calculator-years");
-    const calculatorRate = document.getElementById("calculator-rate");
+    const calculatorPeriod = document.getElementById("calculator-period");
     const calculatorResult = document.getElementById("calculator-result");
+    const historicalChart = document.getElementById("historical-chart");
+    const historyCaption = document.getElementById("history-caption");
+    let calculatorFundId = null;
+    let renderedHistoryFundId = null;
+
+    function renderHistoricalChart(history) {
+      historicalChart.replaceChildren();
+      const returns = history.periods.map((period) => period.return_percent);
+      if (!returns.length || returns.some((value) => !Number.isFinite(value))) return;
+      const minimum = Math.min(0, ...returns);
+      const maximum = Math.max(0, ...returns);
+      const span = maximum - minimum || 1;
+      const zeroPosition = -minimum / span * 100;
+      for (const period of history.periods) {
+        const row = document.createElement("div");
+        row.className = "history-row";
+        const label = document.createElement("span");
+        label.className = "history-period";
+        label.textContent = period.period;
+        const track = document.createElement("span");
+        track.className = "history-track";
+        track.setAttribute("aria-hidden", "true");
+        const zero = document.createElement("span");
+        zero.className = "history-zero";
+        zero.style.left = `${zeroPosition}%`;
+        const bar = document.createElement("span");
+        bar.className = "history-bar";
+        const value = period.return_percent;
+        const start = value < 0 ? (value - minimum) / span * 100 : zeroPosition;
+        const width = Math.abs(value) / span * 100;
+        bar.style.left = `${start}%`;
+        bar.style.width = `${width}%`;
+        track.append(bar, zero);
+        const result = document.createElement("span");
+        result.className = "history-return";
+        result.textContent = period.display_return;
+        result.setAttribute("aria-label", `${period.period}: ${period.display_return}`);
+        row.append(label, track, result);
+        historicalChart.append(row);
+      }
+      const axis = document.createElement("div");
+      axis.className = "history-axis";
+      const axisValues = [...new Set([minimum, 0, maximum])];
+      for (const value of axisValues) {
+        const label = document.createElement("span");
+        label.style.left = `${(value - minimum) / span * 100}%`;
+        label.textContent = value === 0 ? "0%" : `${value > 0 ? "+" : ""}${value}%`;
+        axis.append(label);
+      }
+      historicalChart.append(axis);
+
+      historyCaption.replaceChildren();
+      const asOf = history.as_of ? ` · NAV ${history.as_of}` : "";
+      historyCaption.append(document.createTextNode(
+        `Source-reported SIP returns (not annualized)${asOf} · Publisher: ${history.citation.publisher} ` +
+        `(${history.citation.source_type === "official_amc" ? "official AMC source" : "third-party source"}). `
+      ));
+      const sourceUrl = safeHttpUrl(history.citation.url);
+      if (sourceUrl) {
+        const link = document.createElement("a");
+        link.href = sourceUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = history.citation.label;
+        historyCaption.append(link);
+      }
+    }
+
+    function loadFundPerformance(fundId) {
+      if (historicalPerformance.has(fundId)) return;
+      historicalPerformance.set(fundId, { status: "loading" });
+      renderReturnCalculator();
+      fetch(`/api/funds/${encodeURIComponent(fundId)}/performance`)
+        .then(async (response) => {
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.detail || "Historical return data could not be loaded.");
+          return data;
+        })
+        .then((data) => historicalPerformance.set(fundId, data))
+        .catch((error) => historicalPerformance.set(fundId, {
+          status: "error",
+          message: error.message || "Historical return data could not be loaded.",
+        }))
+        .finally(() => {
+          const conversation = activeConversation();
+          if (conversation && conversation.fundId === fundId) renderReturnCalculator();
+        });
+    }
 
     function renderReturnCalculator() {
       const conversation = activeConversation();
@@ -1028,41 +1135,74 @@ HOME_PAGE = r"""<!doctype html>
       returnCalculator.hidden = !selectedFund;
       if (!selectedFund) return;
       calculatorFundName.textContent = selectedFund.name;
-
-      const monthly = Number(calculatorMonthly.value);
-      const years = Number(calculatorYears.value);
-      const annualRate = Number(calculatorRate.value);
-      const valid = calculatorMonthly.value !== "" && calculatorYears.value !== ""
-        && calculatorRate.value !== ""
-        && Number.isFinite(monthly) && monthly > 0 && monthly <= 10000000
-        && Number.isInteger(years) && years >= 1 && years <= 50
-        && Number.isFinite(annualRate) && annualRate >= 0 && annualRate <= 30;
+      const fundId = selectedFund.fund_id;
+      if (calculatorFundId !== fundId) {
+        calculatorFundId = fundId;
+        renderedHistoryFundId = null;
+        calculatorMonthly.value = "";
+        calculatorPeriod.replaceChildren(new Option("Loading source history…", ""));
+        calculatorPeriod.disabled = true;
+        historicalChart.replaceChildren();
+        historyCaption.textContent = "";
+      }
+      const history = historicalPerformance.get(fundId);
       calculatorResult.replaceChildren();
+      if (!history || history.status === "loading") {
+        const prompt = document.createElement("p");
+        prompt.className = "calculator-assumption";
+        prompt.textContent = "Loading historical values from the fund’s approved source pages…";
+        calculatorResult.append(prompt);
+        return;
+      }
+      if (history.status !== "available") {
+        const prompt = document.createElement("p");
+        prompt.className = "calculator-assumption";
+        prompt.setAttribute("role", history.status === "error" ? "alert" : "status");
+        prompt.textContent = history.message
+          || "Historical return data is not available in the approved source pages.";
+        calculatorResult.append(prompt);
+        calculatorPeriod.replaceChildren(new Option("History unavailable", ""));
+        calculatorPeriod.disabled = true;
+        historicalChart.replaceChildren();
+        historyCaption.textContent = "";
+        return;
+      }
+      if (renderedHistoryFundId !== fundId) {
+        calculatorPeriod.replaceChildren();
+        for (const period of history.periods) {
+          const option = new Option(period.period, String(period.months));
+          calculatorPeriod.append(option);
+        }
+        calculatorPeriod.disabled = history.periods.length === 0;
+        if (history.periods.length) calculatorPeriod.value = String(history.periods[0].months);
+        renderHistoricalChart(history);
+        renderedHistoryFundId = fundId;
+      }
+      const period = history.periods.find((item) => String(item.months) === calculatorPeriod.value);
+      const monthly = Number(calculatorMonthly.value);
+      const valid = calculatorMonthly.value !== "" && Number.isFinite(monthly)
+        && monthly > 0 && monthly <= 10000000 && period;
       if (!valid) {
         const prompt = document.createElement("p");
         prompt.className = "calculator-assumption";
-        prompt.textContent = "Enter a monthly amount, 1–50 years, and an assumed rate from 0–30%.";
+        prompt.textContent = "Enter a monthly amount to scale the publisher’s historical example for a period shown above.";
         calculatorResult.append(prompt);
         return;
       }
 
-      const months = years * 12;
-      const monthlyRate = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
-      const invested = monthly * months;
-      const estimate = monthlyRate === 0
-        ? invested
-        : monthly * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
-      const items = [
-        ["Illustrative value", estimate],
-        ["Total contributed", invested],
-        ["Illustrative difference", estimate - invested],
-      ];
+      const scale = monthly / history.monthly_investment;
+      const invested = period.total_investment * scale;
+      const historicalValue = period.would_become * scale;
       const currency = new Intl.NumberFormat("en-IN", {
         style: "currency",
         currency: "INR",
         maximumFractionDigits: 0,
       });
-      for (const [label, amount] of items) {
+      for (const [label, amount] of [
+        ["Historical value", historicalValue],
+        ["Scaled amount invested", invested],
+        ["Historical difference", historicalValue - invested],
+      ]) {
         const output = document.createElement("div");
         output.className = "calculator-output";
         const outputLabel = document.createElement("span");
@@ -1075,10 +1215,10 @@ HOME_PAGE = r"""<!doctype html>
       const assumption = document.createElement("p");
       assumption.className = "calculator-assumption";
       const emphasis = document.createElement("strong");
-      emphasis.textContent = "Illustration only.";
+      emphasis.textContent = "Historical illustration only.";
       assumption.append(emphasis, document.createTextNode(
-        " Assumes month-end contributions and monthly compounding at your entered rate; excludes fees and taxes. " +
-        "Actual returns may be lower, higher, or negative. This is not a forecast or investment recommendation."
+        ` Scaled proportionally from the published historical SIP illustration for ₹${history.monthly_investment.toLocaleString("en-IN")}/month. ` +
+        "This is not an NAV-accurate ledger, a prediction, or an investment recommendation."
       ));
       calculatorResult.append(assumption);
     }
@@ -1594,6 +1734,7 @@ HOME_PAGE = r"""<!doctype html>
         beginSubmission();
       }
       const conversationId = conversation.id;
+      if (conversation.fundId) loadFundPerformance(conversation.fundId);
 
       try {
         if (transitionUpdate) await transitionUpdate;
@@ -1711,9 +1852,8 @@ HOME_PAGE = r"""<!doctype html>
       showReadAloudIntro = true;
     }
     if (showReadAloudIntro && typeof readAloudDialog.showModal === "function") readAloudDialog.showModal();
-    for (const input of [calculatorMonthly, calculatorYears, calculatorRate]) {
-      input.addEventListener("input", renderReturnCalculator);
-    }
+    calculatorMonthly.addEventListener("input", renderReturnCalculator);
+    calculatorPeriod.addEventListener("change", renderReturnCalculator);
     renderConversation();
   </script>
 </body>

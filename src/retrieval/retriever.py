@@ -183,6 +183,128 @@ def _extract_numeric_facts(lines: list[str]) -> list[dict[str, Any]]:
     return facts
 
 
+def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | None:
+    text = " ".join(" ".join(line.split()) for line in lines if line.strip())
+    header_match = re.search(
+        r"(?:over the past|period)\b.*?(?:would['’]ve become|would have become).*?\breturns?\b",
+        text,
+        re.IGNORECASE,
+    )
+    if header_match is None:
+        return None
+
+    monthly_match = re.search(
+        r"\bmonthly investment\b[^₹\d]{0,24}(?:₹\s*|INR\s*)([\d,]+(?:\.\d+)?)",
+        text[:header_match.start()],
+        re.IGNORECASE,
+    )
+    if monthly_match is None:
+        return None
+    monthly_investment = float(monthly_match.group(1).replace(",", ""))
+    if monthly_investment <= 0:
+        return None
+
+    row_pattern = re.compile(
+        r"\b(\d+(?:\.\d+)?)\s+(months?|years?)\s+"
+        r"(?:₹\s*|INR\s*)([\d,]+(?:\.\d+)?)\s+"
+        r"(?:₹\s*|INR\s*)([\d,]+(?:\.\d+)?)\s+"
+        r"([+-]?\d+(?:\.\d+)?)\s*%",
+        re.IGNORECASE,
+    )
+    remaining_text = text[header_match.end():]
+    section_end = re.search(
+        r"\b(?:holdings|fund manager|riskometer|exit load|expense ratio)\b",
+        remaining_text,
+        re.IGNORECASE,
+    )
+    if section_end:
+        remaining_text = remaining_text[:section_end.start()]
+    periods: list[dict[str, Any]] = []
+    for row_match in row_pattern.finditer(remaining_text):
+        duration = float(row_match.group(1))
+        unit = row_match.group(2).lower()
+        months = round(duration * (12 if unit.startswith("year") else 1))
+        if months <= 0:
+            continue
+        total_investment = float(row_match.group(3).replace(",", ""))
+        would_become = float(row_match.group(4).replace(",", ""))
+        expected_investment = monthly_investment * months
+        if abs(total_investment - expected_investment) > max(1, expected_investment * 0.02):
+            continue
+
+        return_value = float(row_match.group(5))
+        value_return = (would_become / total_investment - 1) * 100
+        if abs(value_return - return_value) > 0.1:
+            continue
+        periods.append({
+            "period": f"{row_match.group(1)} {row_match.group(2)}",
+            "months": months,
+            "total_investment": total_investment,
+            "would_become": would_become,
+            "return_percent": return_value,
+            "display_return": row_match.group(5) + "%",
+        })
+
+    if not periods:
+        return None
+
+    date_pattern = r"(\d{1,2}\s+[A-Za-z]{3,9}\s+['’]?\d{2,4})"
+    as_of_match = re.search(rf"\b(?:as on|as of)\s*:?\s*{date_pattern}", text, re.IGNORECASE)
+    if as_of_match is None:
+        as_of_match = re.search(rf"\bNAV\s*:?\s*{date_pattern}", text, re.IGNORECASE)
+    as_of = as_of_match.group(1) if as_of_match else None
+
+    return {
+        "monthly_investment": monthly_investment,
+        "as_of": as_of,
+        "periods": periods,
+    }
+
+
+def get_fund_historical_performance(
+    fund_id: str,
+    registry_path: Path = DEFAULT_REGISTRY,
+) -> dict[str, Any]:
+    sources = [
+        source for source in load_registry(registry_path)
+        if source.get("fund_id") == fund_id
+    ]
+    if not sources:
+        raise KeyError(f"No approved sources are configured for fund {fund_id!r}")
+    sources.sort(key=lambda source: (source.get("source_priority", 10), source["source_id"]))
+
+    fetch_errors: list[str] = []
+    for source in sources:
+        try:
+            text = _fetch_source_text(source["url"])
+        except RuntimeError as error:
+            fetch_errors.append(f"{source['publisher']}: {error}")
+            continue
+        history = _extract_historical_sip_performance(text.splitlines())
+        if history is None:
+            continue
+        return {
+            "status": "available",
+            "fund_id": fund_id,
+            **history,
+            "citation": {
+                "url": source["url"],
+                "label": source["title"],
+                "publisher": source["publisher"],
+                "source_type": source["source_type"],
+            },
+            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    if fetch_errors:
+        raise RuntimeError("Unable to retrieve historical return data: " + "; ".join(fetch_errors))
+    return {
+        "status": "unavailable",
+        "fund_id": fund_id,
+        "message": "Historical SIP return data was not present in the approved source pages.",
+    }
+
+
 def _requested_fact_key(question: str) -> str | None:
     lowered = question.lower()
     if "expense ratio" in lowered or "total expense ratio" in lowered:

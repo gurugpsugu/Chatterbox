@@ -6,12 +6,12 @@ import json
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from src.loading.scrape_sources import DEFAULT_REGISTRY, load_registry
-from src.retrieval.retriever import answer_question
+from src.retrieval.retriever import answer_question, get_fund_historical_performance
 from src.ui.web_page import HOME_PAGE
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -108,6 +108,14 @@ def fund_catalog() -> dict[str, Any]:
         "funds": funds,
         "source_policy": "official_first_with_labeled_third_party_fallback",
     }
+
+
+@app.get("/api/funds/{fund_id}/performance")
+def fund_performance(fund_id: str) -> dict[str, Any]:
+    try:
+        return get_fund_historical_performance(fund_id)
+    except KeyError as error:
+        raise HTTPException(status_code=404, detail="Unknown fund ID.") from error
 
 
 @app.post("/api/chat")

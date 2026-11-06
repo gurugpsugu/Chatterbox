@@ -25,7 +25,7 @@ The assistant should retrieve concise, sourced facts and politely decline opinio
 ### Non-goals
 
 - Investment, tax, legal, or personalized portfolio advice.
-- Buy/sell recommendations or performance comparisons/calculations.
+- Buy/sell recommendations, forecasts, or cross-scheme performance comparisons.
 - User account access or handling personal financial information.
 - Crawling pages linked from the five specified starting pages.
 - Production-grade authentication, account integrations, or financial transactions.
@@ -76,7 +76,7 @@ The initial data-loading phase is limited to these five URLs. Do not follow or s
 - Include at least one clear citation link in every answer, including refusals.
 - If retrieved evidence does not support an answer, say that the information could not be verified from the available sources and link to a relevant official source when available. Do not guess or fabricate a value, citation, or update date.
 - Refuse opinionated or personalized questions such as “Should I buy/sell?” with a polite facts-only response and a relevant educational source link.
-- Do not calculate, compare, or claim investment performance. For performance requests, direct users to an official factsheet without summarizing or comparing returns.
+- Do not forecast, compare schemes, or claim that historical results predict future performance. The selected-fund history panel may graph return figures and monthly SIP illustrations explicitly published by an approved source, with the source citation and period. It may scale the source's historical SIP illustration proportionally to a user-entered monthly amount; it must not assume an annual return, extend results into the future, annualize source values, or present the calculation as a recommendation or NAV-accurate ledger. If the source data cannot be parsed and cited, show an unavailable state.
 - Display when the source was last checked or updated. Do not imply that a page is current if its freshness could not be verified.
 
 ### 6.3 Privacy and safety

@@ -5,10 +5,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 import app as web_app
+from src.loading.scrape_sources import PageTextExtractor
 from src.retrieval.retriever import (
+    _extract_historical_sip_performance,
     _live_source_evidence,
     _select_registry_sources,
     build_answer,
+    get_fund_historical_performance,
     retrieve_chunks,
 )
 from src.ui.web_page import HOME_PAGE
@@ -146,15 +149,87 @@ class WebUiTests(unittest.TestCase):
         self.assertIn('prefers-reduced-motion: reduce', HOME_PAGE)
         self.assertIn("chatShell.classList.toggle(\"is-active\", hasTurns)", HOME_PAGE)
 
-    def test_selected_fund_shows_user_assumption_return_calculator(self):
+    def test_fund_performance_endpoint_returns_source_backed_history(self):
+        response = {
+            "status": "available",
+            "fund_id": "hdfc-large-cap",
+            "periods": [],
+            "citation": {"url": "https://groww.in/example"},
+        }
+        with patch.object(web_app, "get_fund_historical_performance", return_value=response):
+            self.assertEqual(web_app.fund_performance("hdfc-large-cap"), response)
+
+        with patch.object(
+            web_app,
+            "get_fund_historical_performance",
+            side_effect=KeyError("unknown"),
+        ), self.assertRaises(web_app.HTTPException) as error:
+            web_app.fund_performance("not-a-fund")
+        self.assertEqual(error.exception.status_code, 404)
+
+    def test_historical_sip_parser_keeps_publisher_values_and_periods(self):
+        extractor = PageTextExtractor()
+        extractor.feed(
+            "<main><p>NAV: 05 Nov '26</p><p>Monthly investment</p><p>₹5,000</p>"
+            "<table><tr><th>Over the past</th><th>Total investment</th>"
+            "<th>Would've become</th><th>Historic returns</th><th>Returns</th></tr>"
+            "<tr><td>1 year</td><td>₹60,000</td><td>₹59,766</td><td>-0.39%</td></tr>"
+            "<tr><td>3 years</td><td>₹1,80,000</td><td>₹1,83,780</td><td>+2.10%</td></tr>"
+            "</table></main>"
+        )
+
+        result = _extract_historical_sip_performance(extractor.get_text().splitlines())
+
+        self.assertEqual(result["monthly_investment"], 5000)
+        self.assertEqual(result["as_of"], "05 Nov '26")
+        self.assertEqual(result["periods"][0], {
+            "period": "1 year",
+            "months": 12,
+            "total_investment": 60000,
+            "would_become": 59766,
+            "return_percent": -0.39,
+            "display_return": "-0.39%",
+        })
+        self.assertEqual(result["periods"][1]["months"], 36)
+        self.assertEqual(result["periods"][1]["display_return"], "+2.10%")
+
+    def test_historical_performance_prefers_parsable_official_then_fallback(self):
+        historical_page = (
+            "Monthly investment\n₹5,000\nOver the past\nTotal investment\n"
+            "Would've become\nHistoric returns\nReturns\n1 year\n₹60,000\n"
+            "₹62,000\n+3.33%"
+        )
+        with patch(
+            "src.retrieval.retriever._fetch_source_text",
+            side_effect=["Scheme details only", historical_page],
+        ):
+            result = get_fund_historical_performance("sbi-small-cap")
+
+        self.assertEqual(result["status"], "available")
+        self.assertEqual(result["citation"]["publisher"], "Groww")
+        self.assertEqual(result["periods"][0]["return_percent"], 3.33)
+
+    def test_historical_performance_reports_unavailable_without_inventing_rows(self):
+        with patch(
+            "src.retrieval.retriever._fetch_source_text",
+            return_value="Scheme facts with no historical SIP table",
+        ):
+            result = get_fund_historical_performance("hdfc-large-cap")
+
+        self.assertEqual(result["status"], "unavailable")
+        self.assertNotIn("periods", result)
+
+    def test_selected_fund_uses_source_backed_history_calculator(self):
         self.assertIn('id="return-calculator"', HOME_PAGE)
         self.assertIn('id="calculator-monthly"', HOME_PAGE)
-        self.assertIn('id="calculator-years"', HOME_PAGE)
-        self.assertIn('id="calculator-rate"', HOME_PAGE)
-        self.assertIn("Math.pow(1 + annualRate / 100, 1 / 12) - 1", HOME_PAGE)
-        self.assertIn("Actual returns may be lower, higher, or negative.", HOME_PAGE)
+        self.assertIn('id="calculator-period"', HOME_PAGE)
+        self.assertIn('id="historical-chart"', HOME_PAGE)
+        self.assertIn('fetch(`/api/funds/${encodeURIComponent(fundId)}/performance`)', HOME_PAGE)
+        self.assertIn("published historical SIP illustration", HOME_PAGE)
+        self.assertNotIn('id="calculator-rate"', HOME_PAGE)
+        self.assertNotIn("annualRate", HOME_PAGE)
         self.assertIn("conversation.fundId = suggestionButton.dataset.fundId", HOME_PAGE)
-        self.assertIn('input.addEventListener("input", renderReturnCalculator)', HOME_PAGE)
+        self.assertIn('calculatorMonthly.addEventListener("input", renderReturnCalculator)', HOME_PAGE)
         self.assertNotIn("fund.return", HOME_PAGE)
 
     def test_metric_visuals_are_animated_and_colors_do_not_signal_suitability(self):
