@@ -1,0 +1,26 @@
+{
+  "sources": {
+    "registry": "config/sources.json"
+  },
+  "embedding": {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "normalize_embeddings": true
+  },
+  "vector_store": {
+    "provider": "chromadb",
+    "persist_directory": "data/chroma",
+    "collection": "mutual_fund_faq"
+  },
+  "retrieval": {
+    "top_k": 5,
+    "min_relevance": null
+  },
+  "llm": {
+    "provider": "groq",
+    "model": "qwen/qwen3.8-27b",
+    "api_key_env": "GROQ_API_KEY"
+  },
+  "answer": {
+    "max_sentences": 3
+  }
+}

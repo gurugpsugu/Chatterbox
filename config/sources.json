@@ -1,0 +1,44 @@
+{
+  "sources": [
+    {
+      "source_id": "hdfc-mutual-fund-amc",
+      "title": "HDFC Mutual Fund AMC overview",
+      "publisher": "Groww",
+      "source_type": "required_groww_target",
+      "intended_use": "AMC overview; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/amc/hdfc-mutual-funds"
+    },
+    {
+      "source_id": "hdfc-large-cap-direct-growth",
+      "title": "HDFC Large Cap Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "required_groww_target",
+      "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
+    },
+    {
+      "source_id": "hdfc-flexi-cap-direct-growth",
+      "title": "HDFC Flexi Cap Direct Plan Growth",
+      "publisher": "Groww",
+      "source_type": "required_groww_target",
+      "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth"
+    },
+    {
+      "source_id": "hdfc-elss-tax-saver-direct-growth",
+      "title": "HDFC ELSS Tax Saver Fund Direct Plan Growth",
+      "publisher": "Groww",
+      "source_type": "required_groww_target",
+      "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth"
+    },
+    {
+      "source_id": "hdfc-mid-cap-direct-growth",
+      "title": "HDFC Mid Cap Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "required_groww_target",
+      "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth"
+    }
+  ]
+}
