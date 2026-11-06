@@ -40,6 +40,7 @@ The default vector-store configuration is ChromaDB under `data/chroma/`.
 ## Demo behavior
 
 The project includes a minimal console UI in `src/ui/app.py` and retrieval logic in `src/retrieval/retriever.py`.
+For Vercel, `app.py` exposes a small FastAPI web UI and `/api/chat` endpoint. Set the project root to the repository root and use Vercel's Python runtime detection.
 
 The assistant:
 
@@ -55,3 +56,4 @@ The assistant:
 - The prototype does not crawl links from the target pages.
 - Only curated public sources are used, and official AMC/SEBI/AMFI pages should be preferred when available.
 - Generated data, local secrets, and model artifacts remain outside source control.
+- The Vercel app needs the chunk corpus and a persistent hosted vector database configured before it can answer corpus questions reliably; local generated data and JSON/Chroma files are not deployed.
