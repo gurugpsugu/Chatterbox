@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -88,6 +89,14 @@ def load_registry(path: Path) -> list[dict[str, Any]]:
 
     seen_ids: set[str] = set()
     seen_urls: set[str] = set()
+    approved_hosts = {
+        "groww.in",
+        "www.sbimf.com",
+        "www.icicipruamc.com",
+        "mf.nipponindiaim.com",
+        "www.axismf.com",
+        "www.kotakmf.com",
+    }
     for source in sources:
         if not isinstance(source, dict):
             raise ValueError("Every source registry entry must be an object")
@@ -95,13 +104,25 @@ def load_registry(path: Path) -> list[dict[str, Any]]:
         url = source.get("url")
         if not isinstance(source_id, str) or not re.fullmatch(r"[a-z0-9-]+", source_id):
             raise ValueError(f"Invalid source_id: {source_id!r}")
-        if not isinstance(url, str) or not url.startswith("https://groww.in/mutual-funds/"):
+        parsed_url = urlparse(url) if isinstance(url, str) else None
+        if (
+            parsed_url is None
+            or parsed_url.scheme != "https"
+            or parsed_url.hostname not in approved_hosts
+        ):
+            raise ValueError(f"Source {source_id} has a URL outside the approved HTTPS host list")
+        if parsed_url.hostname == "groww.in" and not parsed_url.path.startswith("/mutual-funds/"):
             raise ValueError(f"Source {source_id} has a URL outside the approved Groww page scope")
         if source_id in seen_ids or url in seen_urls:
             raise ValueError(f"Duplicate source ID or URL: {source_id}")
         if not all(isinstance(source.get(field), str) and source[field].strip()
                    for field in ("title", "publisher", "source_type", "intended_use")):
             raise ValueError(f"Source {source_id} is missing required metadata")
+        priority = source.get("source_priority")
+        if priority is not None and (
+            not isinstance(priority, int) or isinstance(priority, bool) or priority < 0
+        ):
+            raise ValueError(f"Source {source_id} has an invalid source_priority")
         seen_ids.add(source_id)
         seen_urls.add(url)
 

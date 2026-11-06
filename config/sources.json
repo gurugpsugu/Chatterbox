@@ -14,7 +14,11 @@
       "publisher": "Groww",
       "source_type": "required_groww_target",
       "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
-      "url": "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
+      "url": "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth",
+      "fund_id": "hdfc-large-cap",
+      "amc": "HDFC Mutual Fund",
+      "category": "Large Cap",
+      "source_priority": 10
     },
     {
       "source_id": "hdfc-flexi-cap-direct-growth",
@@ -22,7 +26,11 @@
       "publisher": "Groww",
       "source_type": "required_groww_target",
       "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
-      "url": "https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth"
+      "url": "https://groww.in/mutual-funds/hdfc-equity-fund-direct-growth",
+      "fund_id": "hdfc-flexi-cap",
+      "amc": "HDFC Mutual Fund",
+      "category": "Flexi Cap",
+      "source_priority": 10
     },
     {
       "source_id": "hdfc-elss-tax-saver-direct-growth",
@@ -30,7 +38,11 @@
       "publisher": "Groww",
       "source_type": "required_groww_target",
       "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
-      "url": "https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth"
+      "url": "https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth",
+      "fund_id": "hdfc-elss-tax-saver",
+      "amc": "HDFC Mutual Fund",
+      "category": "ELSS / Tax Saver",
+      "source_priority": 10
     },
     {
       "source_id": "hdfc-mid-cap-direct-growth",
@@ -38,7 +50,203 @@
       "publisher": "Groww",
       "source_type": "required_groww_target",
       "intended_use": "Scheme facts; not an official AMC, SEBI, or AMFI source",
-      "url": "https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth"
+      "url": "https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth",
+      "fund_id": "hdfc-mid-cap",
+      "amc": "HDFC Mutual Fund",
+      "category": "Mid Cap",
+      "source_priority": 10
+    },
+    {
+      "source_id": "sbi-large-cap-official",
+      "title": "SBI Large Cap Fund Direct Plan Growth",
+      "publisher": "SBI Mutual Fund",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://www.sbimf.com/sbimf-scheme-details/sbi-large-cap-fund-(formerly-known-as-sbi-bluechip-fund)-43",
+      "fund_id": "sbi-large-cap",
+      "amc": "SBI Mutual Fund",
+      "category": "Large Cap",
+      "source_priority": 0
+    },
+    {
+      "source_id": "sbi-large-cap-groww",
+      "title": "SBI Large Cap Fund Direct Plan Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/sbi-large-cap-direct-plan-growth",
+      "fund_id": "sbi-large-cap",
+      "amc": "SBI Mutual Fund",
+      "category": "Large Cap",
+      "source_priority": 10
+    },
+    {
+      "source_id": "sbi-small-cap-official",
+      "title": "SBI Small Cap Fund Direct Growth",
+      "publisher": "SBI Mutual Fund",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://www.sbimf.com/sbimf-scheme-details/sbi-small-cap-fund-329",
+      "fund_id": "sbi-small-cap",
+      "amc": "SBI Mutual Fund",
+      "category": "Small Cap",
+      "source_priority": 0
+    },
+    {
+      "source_id": "sbi-small-cap-groww",
+      "title": "SBI Small Cap Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/sbi-small-midcap-fund-direct-growth",
+      "fund_id": "sbi-small-cap",
+      "amc": "SBI Mutual Fund",
+      "category": "Small Cap",
+      "source_priority": 10
+    },
+    {
+      "source_id": "icici-mid-cap-official",
+      "title": "ICICI Prudential Mid Cap Fund Direct Plan Growth",
+      "publisher": "ICICI Prudential AMC",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://www.icicipruamc.com/mutual-fund/equity-funds/icici-prudential-midcap-fund/15",
+      "fund_id": "icici-mid-cap",
+      "amc": "ICICI Prudential Mutual Fund",
+      "category": "Mid Cap",
+      "source_priority": 0
+    },
+    {
+      "source_id": "icici-mid-cap-groww",
+      "title": "ICICI Prudential Mid Cap Fund Direct Plan Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/icici-prudential-mid-cap-direct-plan-growth",
+      "fund_id": "icici-mid-cap",
+      "amc": "ICICI Prudential Mutual Fund",
+      "category": "Mid Cap",
+      "source_priority": 10
+    },
+    {
+      "source_id": "nippon-flexi-cap-official",
+      "title": "Nippon India Flexi Cap Fund Direct Growth",
+      "publisher": "Nippon India Mutual Fund",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://mf.nipponindiaim.com/FundsAndPerformance/Pages/NipponIndia-Flexi-Cap-Fund.aspx",
+      "fund_id": "nippon-flexi-cap",
+      "amc": "Nippon India Mutual Fund",
+      "category": "Flexi Cap",
+      "source_priority": 0
+    },
+    {
+      "source_id": "nippon-flexi-cap-groww",
+      "title": "Nippon India Flexi Cap Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/nippon-india-flexi-cap-fund-direct-growth",
+      "fund_id": "nippon-flexi-cap",
+      "amc": "Nippon India Mutual Fund",
+      "category": "Flexi Cap",
+      "source_priority": 10
+    },
+    {
+      "source_id": "axis-elss-official",
+      "title": "Axis ELSS Tax Saver Fund Direct Growth",
+      "publisher": "Axis Mutual Fund",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://www.axismf.com/mutual-funds/equity-funds/axis-elss-tax-saver-fund/ts-dg/direct",
+      "fund_id": "axis-elss-tax-saver",
+      "amc": "Axis Mutual Fund",
+      "category": "ELSS / Tax Saver",
+      "source_priority": 0
+    },
+    {
+      "source_id": "axis-elss-groww",
+      "title": "Axis ELSS Tax Saver Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/axis-elss-tax-saver-direct-growth",
+      "fund_id": "axis-elss-tax-saver",
+      "amc": "Axis Mutual Fund",
+      "category": "ELSS / Tax Saver",
+      "source_priority": 10
+    },
+    {
+      "source_id": "kotak-nifty-50-official",
+      "title": "Kotak Nifty 50 Index Fund Direct Growth",
+      "publisher": "Kotak Mutual Fund",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://www.kotakmf.com/mutual-funds/passive-funds/kotak-nifty-50-index-fund/dir-g",
+      "fund_id": "kotak-nifty-50-index",
+      "amc": "Kotak Mahindra Mutual Fund",
+      "category": "Index Funds",
+      "source_priority": 0
+    },
+    {
+      "source_id": "kotak-nifty-50-groww",
+      "title": "Kotak Nifty 50 Index Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/kotak-nifty-50-index-fund-direct-growth",
+      "fund_id": "kotak-nifty-50-index",
+      "amc": "Kotak Mahindra Mutual Fund",
+      "category": "Index Funds",
+      "source_priority": 10
+    },
+    {
+      "source_id": "icici-corporate-bond-official",
+      "title": "ICICI Prudential Corporate Bond Fund Direct Plan Growth",
+      "publisher": "ICICI Prudential AMC",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://www.icicipruamc.com/mutual-fund/debt-funds/icici-prudential-corporate-bond-fund/281",
+      "fund_id": "icici-corporate-bond",
+      "amc": "ICICI Prudential Mutual Fund",
+      "category": "Debt Funds",
+      "source_priority": 0
+    },
+    {
+      "source_id": "icici-corporate-bond-groww",
+      "title": "ICICI Prudential Corporate Bond Fund Direct Plan Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/icici-prudential-corporate-bond-fund-direct-plan-growth",
+      "fund_id": "icici-corporate-bond",
+      "amc": "ICICI Prudential Mutual Fund",
+      "category": "Debt Funds",
+      "source_priority": 10
+    },
+    {
+      "source_id": "nippon-balanced-advantage-official",
+      "title": "Nippon India Balanced Advantage Fund Direct Growth",
+      "publisher": "Nippon India Mutual Fund",
+      "source_type": "official_amc",
+      "intended_use": "Official scheme page for scheme facts",
+      "url": "https://mf.nipponindiaim.com/FundsAndPerformance/Pages/NipponIndia-Balanced-Advantage-Fund.aspx",
+      "fund_id": "nippon-balanced-advantage",
+      "amc": "Nippon India Mutual Fund",
+      "category": "Hybrid Funds",
+      "source_priority": 0
+    },
+    {
+      "source_id": "nippon-balanced-advantage-groww",
+      "title": "Nippon India Balanced Advantage Fund Direct Growth",
+      "publisher": "Groww",
+      "source_type": "third_party_fallback",
+      "intended_use": "Fallback scheme facts; not an official AMC, SEBI, or AMFI source",
+      "url": "https://groww.in/mutual-funds/nippon-india-balanced-advantage-fund-direct-growth",
+      "fund_id": "nippon-balanced-advantage",
+      "amc": "Nippon India Mutual Fund",
+      "category": "Hybrid Funds",
+      "source_priority": 10
     }
   ]
 }

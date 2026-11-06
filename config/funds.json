@@ -1,0 +1,98 @@
+{
+  "categories": [
+    "Large Cap",
+    "Mid Cap",
+    "Small Cap",
+    "Flexi Cap",
+    "ELSS / Tax Saver",
+    "Index Funds",
+    "Debt Funds",
+    "Hybrid Funds"
+  ],
+  "funds": [
+    {
+      "fund_id": "hdfc-large-cap",
+      "name": "HDFC Large Cap Fund Direct Growth",
+      "amc": "HDFC Mutual Fund",
+      "category": "Large Cap",
+      "source_ids": ["hdfc-large-cap-direct-growth"]
+    },
+    {
+      "fund_id": "sbi-large-cap",
+      "name": "SBI Large Cap Fund Direct Plan Growth",
+      "amc": "SBI Mutual Fund",
+      "category": "Large Cap",
+      "source_ids": ["sbi-large-cap-official", "sbi-large-cap-groww"]
+    },
+    {
+      "fund_id": "hdfc-mid-cap",
+      "name": "HDFC Mid Cap Fund Direct Growth",
+      "amc": "HDFC Mutual Fund",
+      "category": "Mid Cap",
+      "source_ids": ["hdfc-mid-cap-direct-growth"]
+    },
+    {
+      "fund_id": "icici-mid-cap",
+      "name": "ICICI Prudential Mid Cap Fund Direct Plan Growth",
+      "amc": "ICICI Prudential Mutual Fund",
+      "category": "Mid Cap",
+      "source_ids": ["icici-mid-cap-official", "icici-mid-cap-groww"]
+    },
+    {
+      "fund_id": "sbi-small-cap",
+      "name": "SBI Small Cap Fund Direct Growth",
+      "amc": "SBI Mutual Fund",
+      "category": "Small Cap",
+      "source_ids": ["sbi-small-cap-official", "sbi-small-cap-groww"]
+    },
+    {
+      "fund_id": "hdfc-flexi-cap",
+      "name": "HDFC Flexi Cap Fund Direct Plan Growth",
+      "amc": "HDFC Mutual Fund",
+      "category": "Flexi Cap",
+      "source_ids": ["hdfc-flexi-cap-direct-growth"]
+    },
+    {
+      "fund_id": "nippon-flexi-cap",
+      "name": "Nippon India Flexi Cap Fund Direct Growth",
+      "amc": "Nippon India Mutual Fund",
+      "category": "Flexi Cap",
+      "source_ids": ["nippon-flexi-cap-official", "nippon-flexi-cap-groww"]
+    },
+    {
+      "fund_id": "hdfc-elss-tax-saver",
+      "name": "HDFC ELSS Tax Saver Fund Direct Plan Growth",
+      "amc": "HDFC Mutual Fund",
+      "category": "ELSS / Tax Saver",
+      "source_ids": ["hdfc-elss-tax-saver-direct-growth"]
+    },
+    {
+      "fund_id": "axis-elss-tax-saver",
+      "name": "Axis ELSS Tax Saver Fund Direct Growth",
+      "amc": "Axis Mutual Fund",
+      "category": "ELSS / Tax Saver",
+      "source_ids": ["axis-elss-official", "axis-elss-groww"]
+    },
+    {
+      "fund_id": "kotak-nifty-50-index",
+      "name": "Kotak Nifty 50 Index Fund Direct Growth",
+      "amc": "Kotak Mahindra Mutual Fund",
+      "category": "Index Funds",
+      "source_ids": ["kotak-nifty-50-official", "kotak-nifty-50-groww"]
+    },
+    {
+      "fund_id": "icici-corporate-bond",
+      "name": "ICICI Prudential Corporate Bond Fund Direct Plan Growth",
+      "amc": "ICICI Prudential Mutual Fund",
+      "category": "Debt Funds",
+      "source_ids": ["icici-corporate-bond-official", "icici-corporate-bond-groww"]
+    },
+    {
+      "fund_id": "nippon-balanced-advantage",
+      "name": "Nippon India Balanced Advantage Fund Direct Growth",
+      "amc": "Nippon India Mutual Fund",
+      "category": "Hybrid Funds",
+      "source_ids": ["nippon-balanced-advantage-official", "nippon-balanced-advantage-groww"]
+    }
+  ]
+}

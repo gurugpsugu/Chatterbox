@@ -5,20 +5,28 @@ from pathlib import Path
 from unittest.mock import patch
 
 import app as web_app
-from src.retrieval.retriever import build_answer, retrieve_chunks
+from src.retrieval.retriever import (
+    _live_source_evidence,
+    _select_registry_sources,
+    build_answer,
+    retrieve_chunks,
+)
 from src.ui.web_page import HOME_PAGE
 
 
 class WebUiTests(unittest.TestCase):
-    def test_home_includes_starter_questions_accessibility_and_disclaimer(self):
+    def test_home_includes_general_fund_filters_accessibility_and_disclaimer(self):
         page = web_app.home()
 
         self.assertEqual(page, HOME_PAGE)
-        self.assertEqual(page.count('class="suggestion"'), 3)
+        self.assertIn("Clear answers across mutual funds.", page)
+        self.assertIn('id="category-filter"', page)
+        self.assertIn('id="amc-filter"', page)
+        self.assertIn('id="fund-cards"', page)
         self.assertIn("Facts-only. No investment advice.", page)
         self.assertIn('aria-live="polite"', page)
         self.assertIn("prefers-reduced-motion", page)
-        self.assertIn('data-question="What is the ELSS lock-in period for HDFC ELSS Tax Saver Fund?"', page)
+        self.assertIn('fetch("/api/funds")', page)
 
     def test_chat_endpoint_delegates_to_answer_logic(self):
         expected = {"status": "answered", "answer": "Verified from sources.", "citations": []}
@@ -43,6 +51,75 @@ class WebUiTests(unittest.TestCase):
             "What is the minimum SIP?",
             context="What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
         )
+
+    def test_fund_catalog_endpoint_exposes_categories_amcs_and_validated_sources(self):
+        catalog = web_app.fund_catalog()
+
+        self.assertEqual(len(catalog["funds"]), 12)
+        self.assertEqual(len(catalog["categories"]), 8)
+        self.assertEqual(len(catalog["amcs"]), 6)
+        self.assertEqual(
+            catalog["source_policy"],
+            "official_first_with_labeled_third_party_fallback",
+        )
+        sbi_small = next(fund for fund in catalog["funds"] if fund["fund_id"] == "sbi-small-cap")
+        self.assertIn("sbimf.com", sbi_small["official_url"])
+        self.assertIn("groww.in", sbi_small["fallback_url"])
+
+    def test_live_source_uses_official_source_then_falls_back_when_fact_is_missing(self):
+        question = "What is the expense ratio of SBI Small Cap Fund Direct Growth?"
+        selected = _select_registry_sources(question)
+
+        self.assertEqual(
+            [source["source_type"] for source in selected],
+            ["official_amc", "third_party_fallback"],
+        )
+        with patch(
+            "src.retrieval.retriever._fetch_source_text",
+            side_effect=["Scheme details unavailable", "Expense ratio\n0.7%"],
+        ) as fetch:
+            evidence = _live_source_evidence(question)
+
+        self.assertEqual(evidence[0]["source_id"], "sbi-small-cap-groww")
+        self.assertEqual(evidence[0]["publisher"], "Groww")
+        fetch.assert_any_call(selected[0]["url"])
+        fetch.assert_any_call(selected[1]["url"])
+
+    def test_indexed_retrieval_prioritizes_official_source_over_better_matching_fallback(self):
+        question = "What is the expense ratio of SBI Small Cap Fund Direct Growth?"
+        chunks = [{
+            "chunks": [
+                {
+                    "chunk_id": "official-chunk",
+                    "source_id": "sbi-small-cap-official",
+                    "title": "SBI Small Cap Fund Direct Growth",
+                    "url": "https://www.sbimf.com/sbimf-scheme-details/sbi-small-cap-fund-329",
+                    "text": "Official scheme information.",
+                },
+                {
+                    "chunk_id": "fallback-chunk",
+                    "source_id": "sbi-small-cap-groww",
+                    "title": "SBI Small Cap Fund Direct Growth",
+                    "url": "https://groww.in/mutual-funds/sbi-small-midcap-fund-direct-growth",
+                    "text": "Third-party scheme information.",
+                },
+            ],
+        }]
+
+        with patch("src.retrieval.retriever._load_embedding_index", return_value={
+            "official-chunk": [1],
+            "fallback-chunk": [2],
+        }), patch("src.retrieval.retriever._iter_chunk_artifacts", return_value=chunks), patch(
+            "src.retrieval.retriever.embed_query", return_value=[0],
+        ), patch(
+            "src.retrieval.retriever._cosine_similarity",
+            side_effect=lambda _query, vector: 0.2 if vector == [1] else 0.9,
+        ):
+            evidence = retrieve_chunks(question)
+
+        self.assertEqual([item["source_id"] for item in evidence], ["sbi-small-cap-official"])
+        self.assertEqual(evidence[0]["publisher"], "SBI Mutual Fund")
+        self.assertEqual(evidence[0]["source_type"], "official_amc")
 
     def test_ui_validates_citation_protocol_before_creating_links(self):
         self.assertIn("url.protocol === \"https:\" || url.protocol === \"http:\"", HOME_PAGE)

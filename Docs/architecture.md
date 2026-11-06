@@ -2,7 +2,7 @@
 
 ## 1. Purpose and scope
 
-This document describes a small, inspectable RAG prototype for factual questions about HDFC Mutual Fund and a limited set of HDFC schemes. It follows the requirements in [PRD.md](./PRD.md): public sources, evidence-backed answers with citations, no investment advice, no personal data, and visible artifacts for every RAG phase.
+This document describes an inspectable mutual-fund enquiry prototype covering a curated set of schemes from HDFC, SBI, ICICI Prudential, Nippon India, Axis, and Kotak Mahindra. It follows the requirements in [PRD.md](./PRD.md): public sources, evidence-backed answers with citations, no investment advice, no personal data, and visible artifacts for every RAG phase.
 
 The design is intentionally suitable for a local demo or notebook first. It does not include account integrations, user identity, personalized recommendations, or production financial workflows.
 
@@ -59,7 +59,9 @@ Maintains the approved source records used by ingestion. Each record includes:
 - Last-checked timestamp and, when available, the page's own effective/as-of date.
 - Source policy classification (official AMC, SEBI, AMFI, or required Groww target).
 
-The registry is an explicit list, not a crawler frontier. The five Groww targets in the PRD are required initial loading targets but are not official AMC/SEBI/AMFI pages. Until the source-policy question is resolved, do not treat them as authoritative citations. Curate additional official sources explicitly and use the authoritative source for answer evidence where available.
+The registry is an explicit list, not a crawler frontier. It contains curated official AMC pages and, where configured, Groww fallbacks. Retrieval tries the official page first and falls back only when that page cannot provide relevant evidence; citations identify the publisher and distinguish official AMC pages from third-party pages. Some schemes currently have only a Groww page, which is not an official AMC/SEBI/AMFI source.
+
+The separate `config/funds.json` catalog defines the initial scheme coverage and its eight category filters. The `/api/funds` endpoint exposes only catalog entries whose source IDs resolve against the validated registry. This is a curated starting set, not comprehensive coverage of each AMC or category.
 
 ### 4.2 Loader and extractor
 
@@ -253,8 +255,8 @@ For a hosted demo, keep the same logical boundaries, store provider credentials 
 
 ## 11. Key decisions and unresolved items
 
-1. **Groww versus official sources:** Confirm whether Groww pages may be used as answer evidence. Until resolved, keep them identified as required loading targets but prefer explicitly curated official sources for citations.
-2. **Additional sources:** The 15–25 URL list must be curated explicitly; no crawler should discover URLs from the five target pages.
+1. **Coverage:** Expand the catalog only with verified, explicitly curated scheme sources; do not imply comprehensive AMC/category coverage.
+2. **Source freshness:** Official and third-party pages may change or become inaccessible. Preserve publisher labels and report missing evidence rather than presenting unsupported values.
 3. **Statement-help coverage:** Add an official public help source if the approved corpus does not support statement-download instructions.
 4. **Provider/model availability:** Validate Groq access to `qwen/qwen3.8-27b`; fail clearly if unavailable and require an explicit configuration change to use another provider/model.
 5. **Freshness policy:** Distinguish fetch time from source-published update time and define an acceptable age threshold before representing a fact as current.

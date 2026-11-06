@@ -6,7 +6,7 @@ HOME_PAGE = r"""<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f8f8f6">
-  <title>Chatterbox — HDFC Mutual Fund FAQ</title>
+  <title>Chatterbox — Mutual Fund Explorer</title>
   <style>
     :root {
       color-scheme: light;
@@ -210,6 +210,28 @@ HOME_PAGE = r"""<!doctype html>
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
+    }
+
+    .fund-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 14px;
+    }
+
+    .fund-filters select {
+      min-width: 190px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      padding: 9px 12px;
+      font: 12px var(--sans);
+    }
+
+    .fund-category {
+      color: var(--muted);
+      font-size: 11px;
     }
 
     .suggestion {
@@ -739,7 +761,7 @@ HOME_PAGE = r"""<!doctype html>
       </span>
       <span>
         <span class="brand-name">CHATTERBOX</span>
-        <span class="brand-caption">HDFC Mutual Fund FAQ</span>
+        <span class="brand-caption">Mutual fund explorer</span>
       </span>
     </a>
     <span class="header-note"><i class="status-dot" aria-hidden="true"></i> Public-source answers</span>
@@ -748,8 +770,8 @@ HOME_PAGE = r"""<!doctype html>
   <main>
     <section class="welcome" id="welcome">
       <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> A quieter way to find fund facts</p>
-      <h1>Get clear answers about HDFC mutual funds.</h1>
-      <p class="intro">Ask a factual question. Chatterbox uses the source material available to this prototype and shows citations when they are returned.</p>
+      <h1>Clear answers across mutual funds.</h1>
+      <p class="intro">Explore schemes across six AMCs and eight categories. Answers prioritize official AMC sources and label third-party citations when used.</p>
       <div class="trust-row">
         <span class="trust-pill"><span aria-hidden="true">●</span> Facts-only. No investment advice.</span>
         <span class="privacy-note"><span aria-hidden="true">◇</span> Please don’t share personal, account, or contact information.</span>
@@ -758,26 +780,16 @@ HOME_PAGE = r"""<!doctype html>
 
     <section class="suggestions" id="suggestions" aria-labelledby="suggestion-title">
       <div class="section-heading">
-        <h2 id="suggestion-title">Try a question</h2>
-        <span class="micro-label">Choose a prompt to begin</span>
+        <h2 id="suggestion-title">Explore schemes</h2>
+        <span class="micro-label" id="fund-count">Choose a scheme to ask about it</span>
       </div>
-      <div class="suggestion-grid">
-        <button class="suggestion" type="button" data-question="What is the expense ratio of HDFC Large Cap Fund Direct Growth?">
-          <span class="suggestion-top"><span>Scheme detail</span><span aria-hidden="true">↗</span></span>
-          <span class="suggestion-text">What is the expense ratio of HDFC Large Cap Fund Direct Growth?</span>
-          <span class="suggestion-foot"><span class="status-dot" aria-hidden="true"></span> Ask from available sources</span>
-        </button>
-        <button class="suggestion" type="button" data-question="What is the minimum SIP for HDFC Mid Cap Fund Direct Growth?">
-          <span class="suggestion-top"><span>Investing terms</span><span aria-hidden="true">↗</span></span>
-          <span class="suggestion-text">What is the minimum SIP for HDFC Mid Cap Fund Direct Growth?</span>
-          <span class="suggestion-foot"><span class="status-dot" aria-hidden="true"></span> Ask from available sources</span>
-        </button>
-        <button class="suggestion" type="button" data-question="What is the ELSS lock-in period for HDFC ELSS Tax Saver Fund?">
-          <span class="suggestion-top"><span>ELSS basics</span><span aria-hidden="true">↗</span></span>
-          <span class="suggestion-text">What is the ELSS lock-in period for HDFC ELSS Tax Saver Fund?</span>
-          <span class="suggestion-foot"><span class="status-dot" aria-hidden="true"></span> Ask from available sources</span>
-        </button>
+      <div class="fund-filters" aria-label="Filter schemes">
+        <label class="micro-label" for="category-filter">Category</label>
+        <select id="category-filter" aria-label="Filter by category"><option value="">All categories</option></select>
+        <label class="micro-label" for="amc-filter">AMC</label>
+        <select id="amc-filter" aria-label="Filter by AMC"><option value="">All AMCs</option></select>
       </div>
+      <div class="suggestion-grid" id="fund-cards" aria-live="polite"></div>
     </section>
 
     <section class="chat-shell" aria-label="Question and answer">
@@ -804,7 +816,7 @@ HOME_PAGE = r"""<!doctype html>
     </section>
 
     <footer>
-      <span>Chatterbox · Mutual fund FAQ prototype</span>
+      <span>Chatterbox · Mutual fund explorer</span>
       <span>Facts-only · No investment advice</span>
     </footer>
   </main>
@@ -829,11 +841,90 @@ HOME_PAGE = r"""<!doctype html>
     const welcome = document.getElementById("welcome");
     const suggestions = document.getElementById("suggestions");
     const tabsElement = document.getElementById("conversation-tabs");
+    const fundCards = document.getElementById("fund-cards");
+    const categoryFilter = document.getElementById("category-filter");
+    const amcFilter = document.getElementById("amc-filter");
+    const fundCount = document.getElementById("fund-count");
     const speechSupported = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
     let nextConversationId = 2;
     let conversations = [{ id: 1, title: "New chat", turns: [], pending: false }];
     let activeConversationId = 1;
     let activeSpeechButton = null;
+    let fundCatalog = [];
+
+    function renderFundCatalog() {
+      const category = categoryFilter.value;
+      const amc = amcFilter.value;
+      const visibleFunds = fundCatalog.filter((fund) =>
+        (!category || fund.category === category) && (!amc || fund.amc === amc)
+      );
+      fundCount.textContent = `${visibleFunds.length} scheme${visibleFunds.length === 1 ? "" : "s"}`;
+      fundCards.replaceChildren();
+      if (!visibleFunds.length) {
+        const empty = document.createElement("p");
+        empty.className = "micro-label";
+        empty.textContent = "No schemes match these filters.";
+        fundCards.append(empty);
+        return;
+      }
+      for (const fund of visibleFunds) {
+        const card = document.createElement("button");
+        card.className = "suggestion";
+        card.type = "button";
+        card.dataset.question = `What is the expense ratio of ${fund.name}?`;
+        card.dataset.fundId = fund.fund_id;
+        const meta = document.createElement("span");
+        meta.className = "suggestion-top";
+        const amcName = document.createElement("span");
+        amcName.textContent = fund.amc;
+        const arrow = document.createElement("span");
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.textContent = "↗";
+        meta.append(amcName, arrow);
+        const name = document.createElement("span");
+        name.className = "suggestion-text";
+        name.textContent = fund.name;
+        const foot = document.createElement("span");
+        foot.className = "suggestion-foot";
+        const categoryLabel = document.createElement("span");
+        categoryLabel.className = "fund-category";
+        categoryLabel.textContent = fund.category;
+        const action = document.createElement("span");
+        action.textContent = "Ask about this scheme";
+        foot.append(categoryLabel, action);
+        card.append(meta, name, foot);
+        fundCards.append(card);
+      }
+    }
+
+    async function loadFundCatalog() {
+      try {
+        const response = await fetch("/api/funds");
+        if (!response.ok) throw new Error("The scheme catalog could not be loaded.");
+        const catalog = await response.json();
+        fundCatalog = catalog.funds;
+        for (const category of catalog.categories) {
+          const option = document.createElement("option");
+          option.value = category;
+          option.textContent = category;
+          categoryFilter.append(option);
+        }
+        for (const amc of catalog.amcs) {
+          const option = document.createElement("option");
+          option.value = amc;
+          option.textContent = amc;
+          amcFilter.append(option);
+        }
+        renderFundCatalog();
+      } catch (error) {
+        fundCount.textContent = "Catalog unavailable";
+        const message = document.createElement("p");
+        message.className = "micro-label";
+        message.setAttribute("role", "alert");
+        message.textContent = error.message || "The scheme catalog could not be loaded.";
+        fundCards.replaceChildren(message);
+      }
+    }
 
     function activeConversation() {
       return conversations.find((conversation) => conversation.id === activeConversationId);
@@ -1135,7 +1226,13 @@ HOME_PAGE = r"""<!doctype html>
           link.href = href;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
-          link.textContent = citation.label || href;
+          const label = citation.label || href;
+          const sourceType = citation.source_type === "official_amc"
+            ? "Official AMC"
+            : ["third_party_fallback", "required_groww_target"].includes(citation.source_type)
+              ? "Third-party source"
+              : "";
+          link.textContent = `${label}${citation.publisher ? ` · ${citation.publisher}` : ""}${sourceType ? ` (${sourceType})` : ""}`;
           item.append(link);
           list.append(item);
         }
@@ -1222,9 +1319,14 @@ HOME_PAGE = r"""<!doctype html>
       submitQuestion(questionField.value);
     });
 
-    document.querySelectorAll("[data-question]").forEach((button) => {
-      button.addEventListener("click", () => submitQuestion(button.dataset.question || "", button));
+    fundCards.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-question]");
+      if (button) submitQuestion(button.dataset.question || "", button);
     });
+
+    categoryFilter.addEventListener("change", renderFundCatalog);
+    amcFilter.addEventListener("change", renderFundCatalog);
+    loadFundCatalog();
 
     messages.addEventListener("click", (event) => {
       const button = event.target.closest("[data-question]");

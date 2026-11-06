@@ -23,12 +23,16 @@ Keep generated data, local environment files, and credentials out of version con
 
 **Check:** Required directories exist, settings are centralized, generated data and local secrets are ignored by Git, and no secret values are committed.
 
-## 2. Scrape and extract documents
+## 2. Curate the fund catalog, then scrape its sources
 
-- Load only explicitly listed and approved URLs. Begin with the five Groww targets in the PRD; do not follow page links or silently accept unapproved redirects.
+- Maintain `config/funds.json` as the UI-facing catalog of curated funds, AMCs, categories, and source IDs. Keep this catalog aligned with `config/sources.json`.
+- The current starter catalog covers 12 schemes across six selected AMCs and eight categories; this is not comprehensive coverage.
+- For a fund with both source types, assign official AMC records higher priority than third-party fallbacks. Do not label a third-party source as official.
+
+- Load only explicitly listed and approved URLs; do not follow page links or silently accept unapproved redirects.
 - Record each source's ID, URL, publisher, title, intended use, approval status, retrieval time, and fetch/extraction status.
 - Extract readable page content and useful headings/tables, then save the content and metadata under `data/raw/`.
-- Treat Groww pages as required loading targets, not automatically as official citations. Prefer explicitly curated AMC, SEBI, or AMFI sources for answer evidence.
+- Try matching official AMC evidence before a configured Groww fallback. Cite the source actually used and label its publisher/source type.
 - Run `python src\loading\scrape_sources.py` to fetch only the URLs listed in `config/sources.json`. It writes one JSON artifact per source and a run summary to `data/raw/manifest.json`; page links are not followed.
 
 **Check:** Tests verify allowlist-only fetching, no crawling, redirect handling, visible fetch/extraction failures, and traceable raw artifacts.
@@ -75,7 +79,7 @@ Keep generated data, local environment files, and credentials out of version con
 
 - Screen questions before embedding or sending them to a provider. Reject likely PAN, Aadhaar, account numbers, OTPs, emails, and phone numbers without echoing, logging, or persisting them.
 - Retrieve a bounded set of relevant chunks from the configured vector database and apply a relevance threshold.
-- Prefer the configured corpus embeddings for retrieval. If the embedding index is absent, use only the explicitly configured `retrieval.live_source_fallback`: fetch one matching, curated HTTPS source, rank its extracted text locally, and cite the source URL and retrieval time. Never send the user's question to the source site. Reject redirects, non-HTML responses, oversized pages, and fetch errors explicitly. If the fallback is disabled or no relevant passage is found, return the no-evidence response; surface source-fetch and query-embedding failures.
+- Prefer the configured corpus embeddings for retrieval. If the embedding index is absent, use only the explicitly configured `retrieval.live_source_fallback`: fetch matching, curated HTTPS sources in configured priority order, rank each page locally, and stop at the first page with relevant evidence. Never send the user's question to the source site. Reject redirects, non-HTML responses, oversized pages, and fetch errors explicitly. If no relevant passage is found, return the no-evidence response; surface source-fetch and query-embedding failures.
 - Use only eligible, sufficiently fresh evidence. If evidence is missing, weak, stale, or conflicting, say the fact could not be verified rather than guessing.
 - Route advice and personalized requests to a polite facts-only refusal. Do not calculate, compare, or summarize performance; direct users to an official factsheet where available.
 - For supported factual questions, generate answers from evidence only and limit them to three sentences. Build citations and “Last updated from sources:” from validated source metadata, not model output.
@@ -84,7 +88,7 @@ Keep generated data, local environment files, and credentials out of version con
 ### UI
 
 - Implement the responsive FastAPI web UI using the Stitch export in `stitch_chatterbox_hdfc_assistant.zip` as a visual reference: white/off-white surfaces, graphite and muted grey/sage accents, restrained dot-matrix texture, monospaced micro-labels, fine borders, generous whitespace, and subtle transitions. Keep the identity original; do not copy another product's exact identity or interaction design.
-- Start with a welcome message and three clickable, prewritten factual question suggestions. Selecting one submits it as the first question. Provide in-page conversation tabs with independent in-memory transcripts, new/close actions, and a clear-chat action scoped to the current tab.
+- Load the fund catalog from `/api/funds` and render selectable scheme cards with category and AMC filters. Selecting a scheme submits a prewritten factual question. Provide in-page conversation tabs with independent in-memory transcripts, new/close actions, and a clear-chat action scoped to the current tab.
 - Add self-contained follow-up prompts only for numeric facts parsed from the same retrieved scheme source; do not suggest generic definitions that the selected source cannot answer. Include the first answered question from the in-memory conversation as retrieval context when a later follow-up omits its scheme name; do not persist or send conversation history to an LLM. Keep answer wording professional, concise, and considerate.
 - Include a labelled multiline question field, send/loading/error states, clickable citation links, source freshness when returned, and the exact disclaimer: **“Facts-only. No investment advice.”**
 - Provide browser-native read-aloud controls for answers and a first-load introductory popup dismissed for that browser-tab session; indicate when speech synthesis is not supported. Do not upload audio or persist conversation history across page reloads.
@@ -95,7 +99,7 @@ Keep generated data, local environment files, and credentials out of version con
 - Do not display Stitch mockup-only metrics or claims (such as indexed scheme counts, live sync, latency, audit guarantees, or sample fact values) unless the backend returns verified metadata that supports them.
 - Keep any inspection view linked to actual source/chunk metadata; do not expose secrets or raw question history.
 
-**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, curated live-source fallback and its failure cases, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, required UI content, starter/follow-up suggestions, conversation tab/reset behavior, read-aloud controls, verified-chart gating, and safe citation rendering.
+**Check:** Tests cover the validated fund catalog, category/AMC filters, official-first source selection and third-party fallback, relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, conversation tab/reset behavior, read-aloud controls, verified-chart gating, and safe citation rendering.
 
 ## 8. Edge cases and guardrail tests
 

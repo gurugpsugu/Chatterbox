@@ -15,10 +15,13 @@ from src.loading.scrape_sources import (
 
 
 class ScrapeSourcesTests(unittest.TestCase):
-    def test_registry_contains_only_the_five_explicit_targets(self):
+    def test_registry_contains_curated_official_and_fallback_sources(self):
         sources = load_registry(DEFAULT_REGISTRY)
-        self.assertEqual(len(sources), 5)
-        self.assertTrue(all(source["url"].startswith("https://groww.in/mutual-funds/") for source in sources))
+        self.assertGreaterEqual(len(sources), 20)
+        self.assertTrue(any(source["source_type"] == "official_amc" for source in sources))
+        self.assertTrue(any(source["source_type"] == "third_party_fallback" for source in sources))
+        self.assertTrue(all(source["url"].startswith("https://") for source in sources))
+        self.assertTrue(all(source.get("fund_id") for source in sources if source["source_id"] != "hdfc-mutual-fund-amc"))
 
     def test_extractor_ignores_scripts_and_does_not_resolve_links(self):
         parser = PageTextExtractor()

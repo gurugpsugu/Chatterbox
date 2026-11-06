@@ -71,32 +71,46 @@ def _fetch_source_text(url: str, timeout: int = LIVE_SOURCE_TIMEOUT_SECONDS) -> 
     return extractor.get_text()
 
 
-def _select_registry_source(
+def _select_registry_sources(
     question: str,
     registry_path: Path = DEFAULT_REGISTRY,
-) -> dict[str, Any] | None:
-    sources = load_registry(registry_path)
+    sources: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    if sources is None:
+        sources = load_registry(registry_path)
     query_terms = set(re.findall(r"[a-z0-9]+", question.lower())) - GENERIC_QUERY_TERMS
     if not query_terms:
-        return None
+        return []
 
     ranked_sources: list[tuple[int, int, dict[str, Any]]] = []
     for source in sources:
-        title_terms = set(
-            re.findall(r"[a-z0-9]+", f"{source['title']} {source['source_id']}".lower())
-        ) - GENERIC_QUERY_TERMS
+        title_terms = set(re.findall(r"[a-z0-9]+", source["title"].lower())) - GENERIC_QUERY_TERMS
         overlap = len(query_terms & title_terms)
         if overlap:
             ranked_sources.append((overlap, len(title_terms), source))
     if not ranked_sources:
-        return None
+        return []
     ranked_sources.sort(key=lambda result: (result[0], -result[1]), reverse=True)
-    best_overlap, _, best_source = ranked_sources[0]
+    best_overlap, best_title_size, best_source = ranked_sources[0]
     if best_overlap < 2:
-        return None
-    if len(ranked_sources) > 1 and ranked_sources[1][0] == best_overlap:
-        return None
-    return best_source
+        return []
+
+    best_fund_id = best_source.get("fund_id")
+    selected_group = [
+        source for overlap, title_size, source in ranked_sources
+        if overlap == best_overlap
+        and title_size == best_title_size
+        and source.get("fund_id") == best_fund_id
+    ]
+    other_best_funds = {
+        source.get("fund_id", source["source_id"])
+        for overlap, title_size, source in ranked_sources
+        if overlap == best_overlap and title_size == best_title_size
+    }
+    if len(other_best_funds) > 1:
+        return []
+    selected_group.sort(key=lambda source: (source.get("source_priority", 10), source["source_id"]))
+    return selected_group
 
 
 def _extract_numeric_facts(lines: list[str]) -> list[dict[str, Any]]:
@@ -228,14 +242,13 @@ def _live_source_evidence(
     context: str = "",
 ) -> list[dict[str, Any]]:
     source_query = " ".join(part for part in (question, context) if part)
-    source = _select_registry_source(source_query, registry_path)
-    if source is None:
+    sources = _select_registry_sources(source_query, registry_path)
+    if not sources:
         return []
 
-    text = _fetch_source_text(source["url"])
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    requested_fact_key = _requested_fact_key(question)
     query_terms = set(re.findall(r"[a-z0-9]+", source_query.lower())) - GENERIC_QUERY_TERMS
-    if not lines or not query_terms:
+    if not query_terms:
         return []
 
     important_terms = query_terms & {
@@ -245,49 +258,68 @@ def _live_source_evidence(
     if not important_terms:
         important_terms = query_terms
 
-    requested_fact_key = _requested_fact_key(question)
-    facts = _extract_numeric_facts(lines)
-    requested_fact = next(
-        (fact for fact in facts if fact["key"] == requested_fact_key),
-        None,
-    )
-    best_window: list[str] = []
-    best_score = 0
-    if requested_fact is not None:
-        best_window = [requested_fact["label"], requested_fact["display_value"]]
-        best_score = 4
-    elif requested_fact_key is not None:
-        return []
+    fetch_errors: list[str] = []
+    for source in sources:
+        try:
+            text = _fetch_source_text(source["url"])
+        except RuntimeError as error:
+            fetch_errors.append(f"{source['publisher']}: {error}")
+            continue
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if not lines:
+            continue
 
-    if not best_window:
-        for index in range(len(lines)):
-            start = max(0, index - 2)
-            end = min(len(lines), index + 6)
-            window = lines[start:end]
-            window_terms = set(re.findall(r"[a-z0-9]+", " ".join(window).lower()))
-            matched_terms = important_terms & window_terms
-            score = len(matched_terms) * 4 + len(query_terms & window_terms)
-            if score >= best_score and score > 0:
-                best_score = score
-                best_window = window
+        facts = _extract_numeric_facts(lines)
+        requested_fact = next(
+            (fact for fact in facts if fact["key"] == requested_fact_key),
+            None,
+        )
+        best_window: list[str] = []
+        best_score = 0
+        if requested_fact is not None:
+            best_window = [requested_fact["label"], requested_fact["display_value"]]
+            best_score = 4
+        elif requested_fact_key is not None:
+            continue
 
-    if not best_window or best_score < 4:
-        return []
+        if not best_window:
+            for index in range(len(lines)):
+                start = max(0, index - 2)
+                end = min(len(lines), index + 6)
+                window = lines[start:end]
+                window_terms = set(re.findall(r"[a-z0-9]+", " ".join(window).lower()))
+                matched_terms = important_terms & window_terms
+                score = len(matched_terms) * 4 + len(query_terms & window_terms)
+                if score >= best_score and score > 0:
+                    best_score = score
+                    best_window = window
 
-    evidence = {
-        "chunk_id": f"live-{source['source_id']}",
-        "source_id": source["source_id"],
-        "title": source["title"],
-        "url": source["url"],
-        "text": " ".join(best_window),
-        "retrieved_at": datetime.now(timezone.utc).isoformat(),
-        "heading_path": [],
-        "score": float(best_score),
-        "facts": facts,
-    }
-    if requested_fact is not None:
-        evidence["metric"] = requested_fact
-    return [evidence]
+        if not best_window or best_score < 4:
+            continue
+
+        evidence = {
+            "chunk_id": f"live-{source['source_id']}",
+            "source_id": source["source_id"],
+            "title": source["title"],
+            "url": source["url"],
+            "publisher": source["publisher"],
+            "source_type": source["source_type"],
+            "text": " ".join(best_window),
+            "retrieved_at": datetime.now(timezone.utc).isoformat(),
+            "heading_path": [],
+            "score": float(best_score),
+            "facts": facts,
+        }
+        if requested_fact is not None:
+            evidence["metric"] = requested_fact
+        return [evidence]
+
+    if fetch_errors:
+        raise RuntimeError(
+            "No matching evidence was available; source fetch failures: "
+            + "; ".join(fetch_errors)
+        )
+    return []
 
 
 SENSITIVE_PATTERNS = [
@@ -465,6 +497,34 @@ def retrieve_chunks(
     if not candidates:
         return []
 
+    registry_sources = load_registry(registry_path)
+    source_by_id = {source["source_id"]: source for source in registry_sources}
+    for candidate in candidates:
+        source_id = candidate.get("source_id")
+        source = source_by_id.get(source_id) if isinstance(source_id, str) else None
+        if source:
+            candidate["publisher"] = source["publisher"]
+            candidate["source_type"] = source["source_type"]
+
+    preferred_sources = _select_registry_sources(query, registry_path, registry_sources)
+    if preferred_sources:
+        preferred_by_id = {source["source_id"]: source for source in preferred_sources}
+        candidates = [
+            candidate for candidate in candidates
+            if isinstance(candidate.get("source_id"), str)
+            and candidate["source_id"] in preferred_by_id
+        ]
+        if not candidates:
+            return []
+        for candidate in candidates:
+            source = preferred_by_id[candidate["source_id"]]
+            candidate["source_priority"] = source.get("source_priority", 10)
+        best_priority = min(candidate["source_priority"] for candidate in candidates)
+        candidates = [
+            candidate for candidate in candidates
+            if candidate["source_priority"] == best_priority
+        ]
+
     scored = sorted(candidates, key=lambda item: item["score"], reverse=True)
     if min_relevance is not None:
         scored = [item for item in scored if item["score"] >= float(min_relevance)]
@@ -478,12 +538,22 @@ def _citations_for_evidence(evidence: list[dict[str, Any]]) -> list[dict[str, st
         url = str(item.get("url") or FALLBACK_CITATION).strip()
         if url and url not in seen:
             seen.add(url)
-            citations.append({
+            citation = {
                 "url": url,
                 "label": str(item.get("title") or "Source"),
-            })
+            }
+            if item.get("publisher"):
+                citation["publisher"] = str(item["publisher"])
+            if item.get("source_type"):
+                citation["source_type"] = str(item["source_type"])
+            citations.append(citation)
     if not citations:
-        citations.append({"url": FALLBACK_CITATION, "label": "SEBI investor education"})
+        citations.append({
+            "url": FALLBACK_CITATION,
+            "label": "SEBI investor education",
+            "publisher": "SEBI",
+            "source_type": "official_regulator",
+        })
     return citations
 
 
