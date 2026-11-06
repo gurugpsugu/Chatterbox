@@ -84,14 +84,17 @@ Keep generated data, local environment files, and credentials out of version con
 ### UI
 
 - Implement the responsive FastAPI web UI using the Stitch export in `stitch_chatterbox_hdfc_assistant.zip` as a visual reference: white/off-white surfaces, graphite and muted grey/sage accents, restrained dot-matrix texture, monospaced micro-labels, fine borders, generous whitespace, and subtle transitions. Keep the identity original; do not copy another product's exact identity or interaction design.
-- Start with a welcome message and three clickable, prewritten factual question suggestions. Selecting one submits it as the first question; after the first request, transition to the in-memory question/answer view.
-- Include a labelled multiline question field, send/loading/error states, a reset action, clickable citation links, source freshness when returned, and the exact disclaimer: **“Facts-only. No investment advice.”**
-- Clearly tell users not to submit personal identifiers or contact information. Do not retain client-side conversation history after reset or page reload.
+- Start with a welcome message and three clickable, prewritten factual question suggestions. Selecting one submits it as the first question. Provide in-page conversation tabs with independent in-memory transcripts, new/close actions, and a clear-chat action scoped to the current tab.
+- Add topic-relevant, factual follow-up question prompts after each answer. Keep answer wording professional, concise, and considerate.
+- Include a labelled multiline question field, send/loading/error states, clickable citation links, source freshness when returned, and the exact disclaimer: **“Facts-only. No investment advice.”**
+- Provide browser-native read-aloud controls for answers and a first-load introductory popup dismissed for that browser-tab session; indicate when speech synthesis is not supported. Do not upload audio or persist conversation history across page reloads.
+- Clearly tell users not to submit personal identifiers or contact information. Do not retain client-side conversation history after clearing a chat or reloading the page.
+- Render a graph only for a structured chart payload explicitly marked source-verified and accompanied by a valid citation; never extract or infer chart values from answer prose. The current API does not provide chart data, so graphs should not appear until it does.
 - Render model/source text as text, allow only HTTP/HTTPS citation links, support keyboard focus and reduced motion, and adapt the layout for mobile.
 - Do not display Stitch mockup-only metrics or claims (such as indexed scheme counts, live sync, latency, audit guarantees, or sample fact values) unless the backend returns verified metadata that supports them.
 - Keep any inspection view linked to actual source/chunk metadata; do not expose secrets or raw question history.
 
-**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, required UI content, suggestion submission, reset behavior, and safe citation rendering.
+**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, required UI content, starter/follow-up suggestions, conversation tab/reset behavior, read-aloud controls, verified-chart gating, and safe citation rendering.
 
 ## 8. Edge cases and guardrail tests
 
@@ -120,5 +123,5 @@ Minimum automated coverage should include loading, chunk stability and provenanc
 - [ ] Ingestion and retrieval share embedding and vector-store configuration.
 - [ ] Personal information and raw user questions are not logged or persisted.
 - [ ] Answers and refusals follow source, freshness, privacy, and facts-only rules.
-- [ ] Responsive Stitch-inspired UI uses clickable starter questions, accessible chat states, safe citation rendering, and no fabricated status claims.
+- [ ] Responsive Stitch-inspired UI includes starter and follow-up questions, accessible conversation tabs, read-aloud onboarding, safe citation rendering, and no fabricated status claims or charts.
 - [ ] README, 15–25 curated source list, sample Q&A, and demo deliverables are prepared as required by the PRD.

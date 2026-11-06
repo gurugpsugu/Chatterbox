@@ -201,7 +201,7 @@ def build_answer(question: str, evidence: list[dict[str, Any]] | None = None) ->
     if is_advice_request(question):
         return {
             "status": "refused",
-            "answer": "I can only answer factual questions. For investment decisions, please consult official fund materials or a licensed financial adviser.",
+            "answer": "I’m happy to help with factual fund information. For investment decisions, please refer to official fund materials or a licensed financial adviser.",
             "citations": [{"url": FALLBACK_CITATION, "label": "SEBI investor education"}],
             "last_updated_from_sources": None,
         }
@@ -210,7 +210,7 @@ def build_answer(question: str, evidence: list[dict[str, Any]] | None = None) ->
     if not evidence_list:
         return {
             "status": "unverified",
-            "answer": "I could not verify this fact from the available sources.",
+            "answer": "I’m sorry, I couldn’t verify this fact in the sources currently available.",
             "citations": [{"url": FALLBACK_CITATION, "label": "SEBI investor education"}],
             "last_updated_from_sources": None,
         }
@@ -220,7 +220,7 @@ def build_answer(question: str, evidence: list[dict[str, Any]] | None = None) ->
     if len(cleaned) > 220:
         cleaned = cleaned[:220].rstrip() + "..."
 
-    answer = f"The available source material states: {cleaned}."
+    answer = f"I found this in the available source material: {cleaned}."
     times = [item.get("retrieved_at") for item in evidence_list if item.get("retrieved_at")]
     last_updated = max(times) if times else None
     citations = _citations_for_evidence(evidence_list)

@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import app as web_app
-from src.retrieval.retriever import retrieve_chunks
+from src.retrieval.retriever import build_answer, retrieve_chunks
 from src.ui.web_page import HOME_PAGE
 
 
@@ -34,6 +34,32 @@ class WebUiTests(unittest.TestCase):
         self.assertIn("url.protocol === \"https:\" || url.protocol === \"http:\"", HOME_PAGE)
         self.assertIn('link.rel = "noopener noreferrer"', HOME_PAGE)
         self.assertIn("answer.textContent = data.answer", HOME_PAGE)
+
+    def test_ui_supports_follow_ups_conversation_tabs_and_read_aloud(self):
+        self.assertIn('role="tablist"', HOME_PAGE)
+        self.assertIn('id="new-conversation"', HOME_PAGE)
+        self.assertIn('role="tabpanel"', HOME_PAGE)
+        self.assertIn("function followUpQuestions(question)", HOME_PAGE)
+        self.assertIn('aria-label", "Suggested follow-up questions"', HOME_PAGE)
+        self.assertIn('id="read-aloud-dialog"', HOME_PAGE)
+        self.assertIn("SpeechSynthesisUtterance", HOME_PAGE)
+        self.assertIn("window.sessionStorage", HOME_PAGE)
+
+    def test_ui_only_renders_explicitly_verified_charts_with_citations(self):
+        self.assertIn("chart.verified !== true", HOME_PAGE)
+        self.assertIn("!Array.isArray(citations) || !citations.some((item) => safeHttpUrl(item.url))", HOME_PAGE)
+        self.assertIn("Number.isFinite(item.value)", HOME_PAGE)
+        self.assertIn("appendChart(data.chart, citations, turn)", HOME_PAGE)
+
+    def test_answers_use_a_professional_and_considerate_tone(self):
+        unverified = build_answer("What are the scheme details?", evidence=[])
+        verified = build_answer(
+            "What are the scheme details?",
+            evidence=[{"text": "The fund invests in equities.", "url": "https://example.com/fund"}],
+        )
+
+        self.assertIn("I’m sorry", unverified["answer"])
+        self.assertIn("I found this", verified["answer"])
 
     def test_retrieval_returns_no_evidence_without_corpus_embeddings(self):
         with tempfile.TemporaryDirectory() as temp_dir:

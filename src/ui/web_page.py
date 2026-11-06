@@ -273,6 +273,81 @@ HOME_PAGE = r"""<!doctype html>
       box-shadow: 0 12px 32px rgb(65 70 74 / 6%);
     }
 
+    .conversation-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--line);
+      background: #f7f8f6;
+      padding: 8px 12px;
+    }
+
+    .conversation-tabs {
+      display: flex;
+      min-width: 0;
+      flex: 1 1 auto;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .conversation-tab-item { display: inline-flex; flex: 0 0 auto; align-items: center; }
+
+    .conversation-tab {
+      display: inline-flex;
+      max-width: 240px;
+      min-height: 34px;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: transparent;
+      padding: 5px 9px;
+      color: var(--muted);
+      cursor: pointer;
+      font: 11px var(--mono);
+      white-space: nowrap;
+    }
+
+    .conversation-tab[aria-selected="true"] {
+      border-color: var(--line);
+      background: white;
+      color: var(--ink-strong);
+      box-shadow: 0 1px 3px rgb(65 70 74 / 5%);
+    }
+
+    .conversation-tab-title { overflow: hidden; text-overflow: ellipsis; }
+
+    .close-tab {
+      display: grid;
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: var(--quiet);
+      cursor: pointer;
+    }
+
+    .close-tab:hover { background: var(--surface-dim); color: var(--ink-strong); }
+
+    .new-conversation, .read-aloud {
+      min-height: 32px;
+      flex: 0 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: white;
+      padding: 5px 10px;
+      color: var(--sage-dark);
+      cursor: pointer;
+      font: 10px var(--mono);
+      transition: border-color .18s ease, background .18s ease;
+    }
+
+    .new-conversation:hover, .read-aloud:hover { border-color: #bdc9c1; background: #fdfefd; }
+
     .chat-head {
       display: flex;
       min-height: 48px;
@@ -305,6 +380,78 @@ HOME_PAGE = r"""<!doctype html>
     }
 
     .reset:hover { color: var(--ink-strong); }
+
+    .answer-actions { display: flex; justify-content: flex-end; margin: -2px 0 8px; }
+
+    .read-aloud[aria-pressed="true"] { border-color: #bdc9c1; background: var(--sage-pale); }
+
+    .follow-ups {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 11px;
+    }
+
+    .follow-ups-label {
+      width: 100%;
+      color: var(--quiet);
+      font: 9px var(--mono);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .follow-up {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fbfcfa;
+      padding: 6px 10px;
+      color: var(--sage-dark);
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1.4;
+      text-align: left;
+      transition: border-color .18s ease, background .18s ease;
+    }
+
+    .follow-up:hover { border-color: #bdc9c1; background: var(--sage-pale); }
+
+    .chart-card {
+      margin-top: 14px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fcfcfb;
+      padding: 13px;
+    }
+
+    .chart-title { margin: 0 0 12px; color: var(--ink-strong); font: 600 13px var(--display); }
+    .chart-rows { display: grid; gap: 10px; }
+    .chart-row { display: grid; grid-template-columns: minmax(88px, 30%) 1fr auto; align-items: center; gap: 9px; font-size: 11px; }
+    .chart-name { overflow-wrap: anywhere; color: var(--muted); }
+    .chart-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e9ece9; }
+    .chart-bar { height: 100%; border-radius: inherit; background: var(--sage); }
+    .chart-value { color: var(--ink-strong); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
+    .chart-caption { margin: 10px 0 0; color: var(--muted); font-size: 10px; }
+
+    .feature-dialog {
+      width: min(440px, calc(100% - 32px));
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      background: var(--surface);
+      padding: 0;
+      color: var(--ink);
+      box-shadow: 0 24px 80px rgb(25 30 27 / 22%);
+    }
+
+    .feature-dialog::backdrop { background: rgb(35 40 37 / 42%); backdrop-filter: blur(3px); }
+    .dialog-content { padding: 24px; }
+    .dialog-content h2 { margin: 9px 0 8px; color: var(--ink-strong); font: 650 22px/1.2 var(--display); }
+    .dialog-content p { margin: 0; color: var(--muted); font-size: 14px; }
+    .dialog-icon { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #d4e2d7; border-radius: 11px; background: var(--sage-pale); color: var(--sage-dark); font-size: 20px; }
+    .dialog-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+    .dialog-actions button { min-height: 38px; border: 1px solid #526859; border-radius: 7px; background: #414a44; padding: 0 14px; color: white; cursor: pointer; font: 11px var(--mono); }
 
     .messages {
       display: flex;
@@ -581,11 +728,15 @@ HOME_PAGE = r"""<!doctype html>
     </section>
 
     <section class="chat-shell" aria-label="Question and answer">
+      <div class="conversation-bar">
+        <div class="conversation-tabs" id="conversation-tabs" role="tablist" aria-label="Conversations"></div>
+        <button class="new-conversation" id="new-conversation" type="button">+ New chat</button>
+      </div>
       <div class="chat-head">
         <span class="chat-label"><span class="status-dot" aria-hidden="true"></span> Question console</span>
-        <button class="reset" id="reset" type="button" hidden>Clear session</button>
+        <button class="reset" id="reset" type="button" hidden>Clear chat</button>
       </div>
-      <div class="messages" id="messages" aria-live="polite" aria-relevant="additions"></div>
+      <div class="messages" id="messages" role="tabpanel" aria-live="polite" aria-relevant="additions"></div>
       <form class="composer" id="chat-form">
         <div class="composer-row">
           <label for="question" class="micro-label" style="position:absolute;left:-10000px">Your factual question</label>
@@ -605,6 +756,16 @@ HOME_PAGE = r"""<!doctype html>
     </footer>
   </main>
 
+  <dialog class="feature-dialog" id="read-aloud-dialog" aria-labelledby="read-aloud-title">
+    <div class="dialog-content">
+      <span class="dialog-icon" aria-hidden="true">◖</span>
+      <p class="micro-label" style="margin-top:14px">A little more personal</p>
+      <h2 id="read-aloud-title">Listen to an answer</h2>
+      <p>Use the “Read aloud” control on any answer to hear it spoken in your browser’s voice. Playback stays on this device, and you can stop it whenever you like.</p>
+      <div class="dialog-actions"><button id="dismiss-read-aloud" type="button">Sounds good</button></div>
+    </div>
+  </dialog>
+
   <script>
     const form = document.getElementById("chat-form");
     const questionField = document.getElementById("question");
@@ -613,6 +774,80 @@ HOME_PAGE = r"""<!doctype html>
     const resetButton = document.getElementById("reset");
     const welcome = document.getElementById("welcome");
     const suggestions = document.getElementById("suggestions");
+    const tabsElement = document.getElementById("conversation-tabs");
+    const speechSupported = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    let nextConversationId = 2;
+    let conversations = [{ id: 1, title: "New chat", turns: [], pending: false }];
+    let activeConversationId = 1;
+    let activeSpeechButton = null;
+
+    function activeConversation() {
+      return conversations.find((conversation) => conversation.id === activeConversationId);
+    }
+
+    function updateControls() {
+      const conversation = activeConversation();
+      const pending = Boolean(conversation && conversation.pending);
+      sendButton.disabled = pending;
+      questionField.disabled = pending;
+      resetButton.disabled = pending;
+      resetButton.hidden = !conversation || conversation.turns.length === 0;
+      welcome.hidden = Boolean(conversation && conversation.turns.length);
+      suggestions.hidden = Boolean(conversation && conversation.turns.length);
+    }
+
+    function renderTabs() {
+      tabsElement.replaceChildren();
+      for (const conversation of conversations) {
+        const tabItem = document.createElement("div");
+        tabItem.className = "conversation-tab-item";
+        tabItem.setAttribute("role", "presentation");
+        const tab = document.createElement("button");
+        tab.className = "conversation-tab";
+        tab.type = "button";
+        tab.setAttribute("role", "tab");
+        tab.id = `conversation-tab-${conversation.id}`;
+        tab.setAttribute("aria-controls", "messages");
+        tab.setAttribute("aria-selected", String(conversation.id === activeConversationId));
+        tab.tabIndex = conversation.id === activeConversationId ? 0 : -1;
+        tab.dataset.conversationId = String(conversation.id);
+        const title = document.createElement("span");
+        title.className = "conversation-tab-title";
+        title.textContent = conversation.title;
+        tab.append(title);
+        tabItem.append(tab);
+
+        if (conversations.length > 1) {
+          const close = document.createElement("button");
+          close.className = "close-tab";
+          close.type = "button";
+          close.dataset.closeConversation = String(conversation.id);
+          close.setAttribute("aria-label", `Close ${conversation.title}`);
+          close.textContent = "×";
+          close.disabled = conversation.pending;
+          tabItem.append(close);
+        }
+        tabsElement.append(tabItem);
+      }
+    }
+
+    function renderConversation() {
+      const conversation = activeConversation();
+      messages.replaceChildren();
+      if (conversation) {
+        messages.setAttribute("aria-labelledby", `conversation-tab-${conversation.id}`);
+        for (const turn of conversation.turns) {
+          appendQuestion(turn.question);
+          if (turn.response) {
+            if (turn.response.error) appendFailure(turn.response.error);
+            else appendAnswer(turn.response, turn.question);
+          }
+        }
+        if (conversation.pending) appendLoading();
+      }
+      updateControls();
+      renderTabs();
+    }
 
     function appendQuestion(question) {
       const turn = document.createElement("article");
@@ -630,7 +865,7 @@ HOME_PAGE = r"""<!doctype html>
       const turn = document.createElement("div");
       turn.className = "turn loading-turn";
       turn.setAttribute("role", "status");
-      turn.innerHTML = '<span class="typing"><i></i><i></i><i></i> Checking available sources</span>';
+      turn.innerHTML = '<span class="typing"><i></i><i></i><i></i> Looking through the available sources</span>';
       messages.append(turn);
       messages.scrollTop = messages.scrollHeight;
       return turn;
@@ -645,7 +880,102 @@ HOME_PAGE = r"""<!doctype html>
       }
     }
 
-    function appendAnswer(data) {
+    function followUpQuestions(question) {
+      const normalized = question.toLowerCase();
+      if (normalized.includes("elss") || normalized.includes("lock-in") || normalized.includes("lock in")) {
+        return [
+          "Where can I find official scheme documents for an ELSS fund?",
+          "How is an ELSS lock-in period described for SIP instalments?"
+        ];
+      }
+      if (normalized.includes("expense ratio") || normalized.includes("charges") || normalized.includes("fee")) {
+        return [
+          "Where can I find HDFC’s latest official expense-ratio disclosures?",
+          "What other costs should I look for in the scheme documents?"
+        ];
+      }
+      if (normalized.includes("sip") || normalized.includes("minimum investment") || normalized.includes("minimum amount")) {
+        return [
+          "Where can I find current investment minimums for HDFC mutual fund schemes?",
+          "What does SIP mean in a mutual fund?"
+        ];
+      }
+      return [
+        "Where can I find the latest official scheme documents?",
+        "What fees and charges should I look for in those documents?"
+      ];
+    }
+
+    function appendFollowUps(question, container) {
+      const section = document.createElement("div");
+      section.className = "follow-ups";
+      section.setAttribute("aria-label", "Suggested follow-up questions");
+      const label = document.createElement("span");
+      label.className = "follow-ups-label";
+      label.textContent = "Continue exploring";
+      section.append(label);
+      for (const text of followUpQuestions(question)) {
+        const button = document.createElement("button");
+        button.className = "follow-up";
+        button.type = "button";
+        button.dataset.question = text;
+        button.textContent = text;
+        section.append(button);
+      }
+      container.append(section);
+    }
+
+    function appendChart(chart, citations, container) {
+      if (!chart || chart.verified !== true || !Array.isArray(chart.data)
+          || chart.data.length < 2 || chart.data.length > 12
+          || !Array.isArray(citations) || !citations.some((item) => safeHttpUrl(item.url))) return;
+      const rows = chart.data.filter((item) => item
+        && typeof item.label === "string" && item.label.trim()
+        && typeof item.value === "number" && Number.isFinite(item.value) && item.value >= 0);
+      if (rows.length !== chart.data.length) return;
+      const maximum = Math.max(...rows.map((item) => item.value));
+      if (maximum <= 0) return;
+
+      const figure = document.createElement("figure");
+      figure.className = "chart-card";
+      const title = document.createElement("figcaption");
+      title.className = "chart-title";
+      title.textContent = chart.title || "Source data";
+      figure.append(title);
+      const list = document.createElement("div");
+      list.className = "chart-rows";
+      list.setAttribute("role", "list");
+      for (const item of rows) {
+        const row = document.createElement("div");
+        row.className = "chart-row";
+        row.setAttribute("role", "listitem");
+        const name = document.createElement("span");
+        name.className = "chart-name";
+        name.textContent = item.label;
+        const track = document.createElement("span");
+        track.className = "chart-track";
+        track.setAttribute("aria-hidden", "true");
+        const bar = document.createElement("span");
+        bar.className = "chart-bar";
+        bar.style.width = `${Math.max(0, item.value / maximum * 100)}%`;
+        track.append(bar);
+        const value = document.createElement("span");
+        value.className = "chart-value";
+        value.textContent = `${item.value}${chart.unit ? ` ${chart.unit}` : ""}`;
+        row.append(name, track, value);
+        list.append(row);
+      }
+      figure.append(list);
+      if (chart.source_label) {
+        const caption = document.createElement("p");
+        caption.className = "chart-caption";
+        caption.textContent = `Source: ${chart.source_label}`;
+        figure.append(caption);
+      }
+      container.append(figure);
+    }
+
+    function appendAnswer(data, question) {
       const turn = document.createElement("article");
       turn.className = "turn";
       turn.setAttribute("aria-label", "Assistant answer");
@@ -665,6 +995,48 @@ HOME_PAGE = r"""<!doctype html>
       answer.className = "answer-text";
       answer.textContent = data.answer || "The assistant returned no answer.";
       card.append(answer);
+
+      const actions = document.createElement("div");
+      actions.className = "answer-actions";
+      const readAloud = document.createElement("button");
+      readAloud.className = "read-aloud";
+      readAloud.type = "button";
+      readAloud.textContent = speechSupported ? "Read aloud" : "Read aloud unavailable";
+      readAloud.disabled = !speechSupported;
+      readAloud.setAttribute("aria-label", speechSupported
+        ? "Read this answer aloud" : "Read aloud is not supported in this browser");
+      readAloud.addEventListener("click", () => {
+        if (!speechSupported) return;
+        if (activeSpeechButton === readAloud && window.speechSynthesis.speaking) {
+          window.speechSynthesis.cancel();
+          readAloud.setAttribute("aria-pressed", "false");
+          readAloud.textContent = "Read aloud";
+          activeSpeechButton = null;
+          return;
+        }
+        if (activeSpeechButton) {
+          activeSpeechButton.setAttribute("aria-pressed", "false");
+          activeSpeechButton.textContent = "Read aloud";
+          activeSpeechButton = null;
+        }
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(answer.textContent);
+        utterance.rate = 0.96;
+        utterance.pitch = 1;
+        utterance.onend = utterance.onerror = () => {
+          if (activeSpeechButton === readAloud) {
+            readAloud.setAttribute("aria-pressed", "false");
+            readAloud.textContent = "Read aloud";
+            activeSpeechButton = null;
+          }
+        };
+        readAloud.setAttribute("aria-pressed", "true");
+        readAloud.textContent = "Stop reading";
+        activeSpeechButton = readAloud;
+        window.speechSynthesis.speak(utterance);
+      });
+      actions.append(readAloud);
+      card.append(actions);
 
       if (data.last_updated_from_sources) {
         const updated = document.createElement("p");
@@ -704,23 +1076,37 @@ HOME_PAGE = r"""<!doctype html>
       }
       card.append(details);
       turn.append(card);
+      appendChart(data.chart, citations, turn);
+      appendFollowUps(question, turn);
       messages.append(turn);
       messages.scrollTop = messages.scrollHeight;
     }
 
+    function appendFailure(messageText) {
+      const failure = document.createElement("article");
+      failure.className = "turn";
+      failure.setAttribute("role", "alert");
+      const message = document.createElement("p");
+      message.className = "answer-card answer-text";
+      message.textContent = messageText;
+      failure.append(message);
+      messages.append(failure);
+    }
+
     async function submitQuestion(rawQuestion) {
       const question = rawQuestion.trim();
-      if (!question || sendButton.disabled) return;
+      const conversation = activeConversation();
+      if (!question || !conversation || conversation.pending) return;
 
-      welcome.hidden = true;
-      suggestions.hidden = true;
-      resetButton.hidden = false;
-      resetButton.disabled = true;
       questionField.value = "";
-      appendQuestion(question);
-      const loading = appendLoading();
-      sendButton.disabled = true;
-      questionField.disabled = true;
+      const turn = { question, response: null };
+      conversation.turns.push(turn);
+      conversation.pending = true;
+      if (conversation.turns.length === 1) {
+        conversation.title = question.length > 28 ? `${question.slice(0, 27)}…` : question;
+      }
+      renderConversation();
+      const conversationId = conversation.id;
 
       try {
         const response = await fetch("/api/chat", {
@@ -729,23 +1115,13 @@ HOME_PAGE = r"""<!doctype html>
           body: JSON.stringify({ question })
         });
         if (!response.ok) throw new Error("The request could not be completed. Please try again.");
-        appendAnswer(await response.json());
+        turn.response = await response.json();
       } catch (error) {
-        const failure = document.createElement("article");
-        failure.className = "turn";
-        failure.setAttribute("role", "alert");
-        const message = document.createElement("p");
-        message.className = "answer-card answer-text";
-        message.textContent = error.message || "The request could not be completed. Please try again.";
-        failure.append(message);
-        messages.append(failure);
+        turn.response = { error: error.message || "Sorry, that request didn’t go through. Please try again." };
       } finally {
-        loading.remove();
-        sendButton.disabled = false;
-        questionField.disabled = false;
-        resetButton.disabled = false;
-        questionField.focus();
-        messages.scrollTop = messages.scrollHeight;
+        const completedConversation = conversations.find((item) => item.id === conversationId);
+        if (completedConversation) completedConversation.pending = false;
+        if (activeConversationId === conversationId) renderConversation();
       }
     }
 
@@ -758,15 +1134,90 @@ HOME_PAGE = r"""<!doctype html>
       button.addEventListener("click", () => submitQuestion(button.dataset.question || ""));
     });
 
-    resetButton.addEventListener("click", () => {
-      messages.replaceChildren();
+    messages.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-question]");
+      if (button) submitQuestion(button.dataset.question || "");
+    });
+
+    document.getElementById("new-conversation").addEventListener("click", () => {
+      window.speechSynthesis?.cancel();
+      activeSpeechButton = null;
+      const conversation = { id: nextConversationId++, title: "New chat", turns: [], pending: false };
+      conversations.push(conversation);
+      activeConversationId = conversation.id;
       questionField.value = "";
-      welcome.hidden = false;
-      suggestions.hidden = false;
-      resetButton.hidden = true;
-      resetButton.disabled = false;
+      renderConversation();
       questionField.focus();
     });
+
+    tabsElement.addEventListener("click", (event) => {
+      const closeButton = event.target.closest("[data-close-conversation]");
+      if (closeButton) {
+        const id = Number(closeButton.dataset.closeConversation);
+        const conversation = conversations.find((item) => item.id === id);
+        if (!conversation || conversation.pending) return;
+        conversations = conversations.filter((item) => item.id !== id);
+        if (activeConversationId === id) {
+          activeConversationId = conversations[0].id;
+          questionField.value = "";
+        }
+        window.speechSynthesis?.cancel();
+        activeSpeechButton = null;
+        renderConversation();
+        return;
+      }
+      const tab = event.target.closest("[data-conversation-id]");
+      if (tab) {
+        window.speechSynthesis?.cancel();
+        activeSpeechButton = null;
+        activeConversationId = Number(tab.dataset.conversationId);
+        questionField.value = "";
+        renderConversation();
+      }
+    });
+
+    tabsElement.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const current = event.target.closest("[role='tab']");
+      if (!current) return;
+      const tabs = Array.from(tabsElement.querySelectorAll("[role='tab']"));
+      const currentIndex = tabs.indexOf(current);
+      const direction = event.key === "ArrowRight" ? 1 : -1;
+      const next = tabs[(currentIndex + direction + tabs.length) % tabs.length];
+      event.preventDefault();
+      next.focus();
+      next.click();
+    });
+
+    resetButton.addEventListener("click", () => {
+      const conversation = activeConversation();
+      if (!conversation || conversation.pending) return;
+      window.speechSynthesis?.cancel();
+      activeSpeechButton = null;
+      conversation.turns = [];
+      conversation.title = "New chat";
+      questionField.value = "";
+      renderConversation();
+      questionField.focus();
+    });
+
+    const readAloudDialog = document.getElementById("read-aloud-dialog");
+    document.getElementById("dismiss-read-aloud").addEventListener("click", () => {
+      readAloudDialog.close();
+      try {
+        window.sessionStorage.setItem("chatterbox-read-aloud-intro-seen", "true");
+      } catch {
+        // The introduction remains available on the next visit when session storage is disabled.
+      }
+    });
+    let showReadAloudIntro = true;
+    try {
+      showReadAloudIntro = window.sessionStorage.getItem("chatterbox-read-aloud-intro-seen") !== "true";
+    } catch {
+      showReadAloudIntro = true;
+    }
+    if (showReadAloudIntro && typeof readAloudDialog.showModal === "function") readAloudDialog.showModal();
+    renderConversation();
   </script>
 </body>
 </html>"""
