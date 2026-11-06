@@ -75,7 +75,7 @@ Keep generated data, local environment files, and credentials out of version con
 
 - Screen questions before embedding or sending them to a provider. Reject likely PAN, Aadhaar, account numbers, OTPs, emails, and phone numbers without echoing, logging, or persisting them.
 - Retrieve a bounded set of relevant chunks from the configured vector database and apply a relevance threshold.
-- Do not silently use keyword overlap when corpus embeddings or query embedding are unavailable; return the no-evidence response or surface the embedding failure.
+- Prefer the configured corpus embeddings for retrieval. If the embedding index is absent, use only the explicitly configured `retrieval.live_source_fallback`: fetch one matching, curated HTTPS source, rank its extracted text locally, and cite the source URL and retrieval time. Never send the user's question to the source site. Reject redirects, non-HTML responses, oversized pages, and fetch errors explicitly. If the fallback is disabled or no relevant passage is found, return the no-evidence response; surface source-fetch and query-embedding failures.
 - Use only eligible, sufficiently fresh evidence. If evidence is missing, weak, stale, or conflicting, say the fact could not be verified rather than guessing.
 - Route advice and personalized requests to a polite facts-only refusal. Do not calculate, compare, or summarize performance; direct users to an official factsheet where available.
 - For supported factual questions, generate answers from evidence only and limit them to three sentences. Build citations and “Last updated from sources:” from validated source metadata, not model output.
@@ -94,7 +94,7 @@ Keep generated data, local environment files, and credentials out of version con
 - Do not display Stitch mockup-only metrics or claims (such as indexed scheme counts, live sync, latency, audit guarantees, or sample fact values) unless the backend returns verified metadata that supports them.
 - Keep any inspection view linked to actual source/chunk metadata; do not expose secrets or raw question history.
 
-**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, required UI content, starter/follow-up suggestions, conversation tab/reset behavior, read-aloud controls, verified-chart gating, and safe citation rendering.
+**Check:** Tests cover relevant and no-evidence retrieval, source eligibility and freshness, privacy screening before external calls, curated live-source fallback and its failure cases, advice/performance routes, citations, the three-sentence limit, provider failures, prompt-injection resistance, required UI content, starter/follow-up suggestions, conversation tab/reset behavior, read-aloud controls, verified-chart gating, and safe citation rendering.
 
 ## 8. Edge cases and guardrail tests
 

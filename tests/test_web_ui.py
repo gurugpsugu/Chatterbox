@@ -84,9 +84,44 @@ class WebUiTests(unittest.TestCase):
                 "What is the fund's lock-in period?",
                 chunks_dir=chunks_dir,
                 embeddings_dir=embeddings_dir,
+                live_source_fallback=False,
             )
 
         self.assertEqual(results, [])
+
+    def test_live_source_fallback_finds_and_cites_a_relevant_passage(self):
+        source_text = (
+            "HDFC Large Cap Fund Direct Growth\n"
+            "Min. for SIP\n₹100\nFund size (AUM)\n₹37,293.95 Cr\n"
+            "Expense ratio\n1.01%\nRating\n4"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            chunks_dir = root / "chunks"
+            embeddings_dir = root / "embeddings"
+            chunks_dir.mkdir()
+            embeddings_dir.mkdir()
+
+            with patch(
+                "src.retrieval.retriever._fetch_source_text",
+                return_value=source_text,
+            ) as fetch_source:
+                results = retrieve_chunks(
+                    "What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
+                    chunks_dir=chunks_dir,
+                    embeddings_dir=embeddings_dir,
+                    live_source_fallback=True,
+                )
+
+        self.assertEqual(len(results), 1)
+        self.assertIn("Expense ratio 1.01%", results[0]["text"])
+        self.assertEqual(
+            results[0]["url"],
+            "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth",
+        )
+        fetch_source.assert_called_once_with(
+            "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
+        )
 
 
 if __name__ == "__main__":

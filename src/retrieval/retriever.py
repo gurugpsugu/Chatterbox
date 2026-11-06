@@ -5,16 +5,159 @@ from __future__ import annotations
 import json
 import math
 import re
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
 from src.embedding.embed_chunks import embed_query, load_settings
+from src.loading.scrape_sources import PageTextExtractor, load_registry
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CHUNKS_DIR = PROJECT_ROOT / "data" / "chunks"
 DEFAULT_EMBEDDINGS_DIR = PROJECT_ROOT / "data" / "embeddings"
 DEFAULT_SETTINGS = PROJECT_ROOT / "config" / "settings.json"
+DEFAULT_REGISTRY = PROJECT_ROOT / "config" / "sources.json"
 FALLBACK_CITATION = "https://www.sebi.gov.in/"
+LIVE_SOURCE_TIMEOUT_SECONDS = 8
+MAX_SOURCE_BYTES = 4 * 1024 * 1024
+GENERIC_QUERY_TERMS = {
+    "a", "an", "and", "about", "can", "does", "do", "find", "for", "fund",
+    "growth", "hdfc", "i", "in", "is", "latest", "me", "mutual", "of",
+    "plan", "please", "scheme", "tell", "the", "what", "which",
+}
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, new_url):
+        return None
+
+
+def _fetch_source_text(url: str, timeout: int = LIVE_SOURCE_TIMEOUT_SECONDS) -> str:
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "ChatterboxPublicPageFetcher/1.0"},
+    )
+    opener = urllib.request.build_opener(_NoRedirectHandler)
+    try:
+        with opener.open(request, timeout=timeout) as response:
+            final_url = response.geturl()
+            if final_url != url:
+                raise RuntimeError("The approved source redirected to a different URL.")
+            if not response.headers.get("Content-Type", "").lower().startswith("text/html"):
+                raise RuntimeError("The approved source did not return an HTML page.")
+            content = response.read(MAX_SOURCE_BYTES + 1)
+    except urllib.error.HTTPError as error:
+        raise RuntimeError(
+            f"The approved source returned HTTP {error.code}."
+        ) from error
+    except urllib.error.URLError as error:
+        raise RuntimeError(
+            f"The approved source could not be reached: {error.reason}"
+        ) from error
+    except TimeoutError as error:
+        raise RuntimeError("The approved source request timed out.") from error
+    if len(content) > MAX_SOURCE_BYTES:
+        raise RuntimeError("The approved source page exceeded the maximum supported size.")
+    charset = response.headers.get_content_charset() or "utf-8"
+    try:
+        html = content.decode(charset)
+    except (LookupError, UnicodeDecodeError) as error:
+        raise RuntimeError("The approved source page could not be decoded.") from error
+
+    extractor = PageTextExtractor()
+    extractor.feed(html)
+    return extractor.get_text()
+
+
+def _select_registry_source(
+    question: str,
+    registry_path: Path = DEFAULT_REGISTRY,
+) -> dict[str, Any] | None:
+    sources = load_registry(registry_path)
+    query_terms = set(re.findall(r"[a-z0-9]+", question.lower())) - GENERIC_QUERY_TERMS
+    if not query_terms:
+        return None
+
+    ranked_sources: list[tuple[int, int, dict[str, Any]]] = []
+    for source in sources:
+        title_terms = set(
+            re.findall(r"[a-z0-9]+", f"{source['title']} {source['source_id']}".lower())
+        ) - GENERIC_QUERY_TERMS
+        overlap = len(query_terms & title_terms)
+        if overlap:
+            ranked_sources.append((overlap, len(title_terms), source))
+    if not ranked_sources:
+        return None
+    ranked_sources.sort(key=lambda result: (result[0], -result[1]), reverse=True)
+    best_overlap, _, best_source = ranked_sources[0]
+    if best_overlap < 2:
+        return None
+    if len(ranked_sources) > 1 and ranked_sources[1][0] == best_overlap:
+        return None
+    return best_source
+
+
+def _live_source_evidence(question: str, registry_path: Path = DEFAULT_REGISTRY) -> list[dict[str, Any]]:
+    source = _select_registry_source(question, registry_path)
+    if source is None:
+        return []
+
+    text = _fetch_source_text(source["url"])
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    query_terms = set(re.findall(r"[a-z0-9]+", question.lower())) - GENERIC_QUERY_TERMS
+    if not lines or not query_terms:
+        return []
+
+    important_terms = query_terms & {
+        "aum", "charge", "expense", "exit", "fee", "load",
+        "lock", "minimum", "nav", "ratio", "risk", "sip", "tax",
+    }
+    if not important_terms:
+        important_terms = query_terms
+
+    requested_field = None
+    if {"expense", "ratio"} <= query_terms:
+        requested_field = re.compile(r"\bexpense\s+ratio\b", re.IGNORECASE)
+    elif "sip" in query_terms and "minimum" in query_terms:
+        requested_field = re.compile(r"\bmin(?:imum)?\.?\s+(?:for\s+)?sip\b", re.IGNORECASE)
+    value_pattern = re.compile(r"(?:₹\s*[\d,]+(?:\.\d+)?|\b\d+(?:\.\d+)?\s*%)")
+
+    best_window: list[str] = []
+    best_score = 0
+    if requested_field is not None:
+        for index, line in enumerate(lines[:-1]):
+            if requested_field.search(line) and value_pattern.search(lines[index + 1]):
+                best_window = [line, lines[index + 1]]
+                best_score = 4
+                break
+
+    if not best_window:
+        for index in range(len(lines)):
+            start = max(0, index - 2)
+            end = min(len(lines), index + 6)
+            window = lines[start:end]
+            window_terms = set(re.findall(r"[a-z0-9]+", " ".join(window).lower()))
+            matched_terms = important_terms & window_terms
+            score = len(matched_terms) * 4 + len(query_terms & window_terms)
+            if score >= best_score and score > 0:
+                best_score = score
+                best_window = window
+
+    if not best_window or best_score < 4:
+        return []
+
+    return [{
+        "chunk_id": f"live-{source['source_id']}",
+        "source_id": source["source_id"],
+        "title": source["title"],
+        "url": source["url"],
+        "text": " ".join(best_window),
+        "retrieved_at": datetime.now(timezone.utc).isoformat(),
+        "heading_path": [],
+        "score": float(best_score),
+    }]
 
 
 SENSITIVE_PATTERNS = [
@@ -123,6 +266,9 @@ def retrieve_chunks(
     embeddings_dir: Path = DEFAULT_EMBEDDINGS_DIR,
     top_k: int = 5,
     min_relevance: float | None = None,
+    live_source_fallback: bool | None = None,
+    registry_path: Path = DEFAULT_REGISTRY,
+    settings_path: Path = DEFAULT_SETTINGS,
 ) -> list[dict[str, Any]]:
     screen = screen_question(question)
     if not screen["allowed"]:
@@ -132,6 +278,21 @@ def retrieve_chunks(
     candidates: list[dict[str, Any]] = []
     embedding_index = _load_embedding_index(embeddings_dir)
     if not embedding_index:
+        if live_source_fallback is None:
+            try:
+                settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                raise ValueError(f"Unable to read retrieval settings {settings_path}: {error}") from error
+            retrieval_settings = settings.get("retrieval") if isinstance(settings, dict) else None
+            live_source_fallback = (
+                retrieval_settings.get("live_source_fallback", False)
+                if isinstance(retrieval_settings, dict)
+                else False
+            )
+            if not isinstance(live_source_fallback, bool):
+                raise ValueError("retrieval.live_source_fallback must be a boolean")
+        if live_source_fallback:
+            return _live_source_evidence(query, registry_path)
         return []
 
     try:

@@ -142,6 +142,8 @@ The initial screen provides a welcome message, three selectable question suggest
 
 Answers use concise, professional, considerate wording and include topic-aware, self-contained follow-up question prompts. Each answer has a browser-native read-aloud control; a first-load dialog introduces it once per browser-tab session, and browsers without speech synthesis show the control as unavailable. Speech is generated locally by the browser. A chart may render only when `/api/chat` returns a structured `chart` payload marked `verified: true`, with 2–12 finite nonnegative numeric values and at least one valid HTTP(S) citation. The current endpoint returns no chart payload, so the UI displays no graphs until source-backed chart data is explicitly supplied.
 
+The configured retrieval path uses the persisted embedding index when available. When it is absent, `retrieval.live_source_fallback` explicitly enables a bounded, read-only fetch from one matching URL in the curated registry. The question itself is never sent to that source; the application extracts a relevant passage locally, cites the registry URL, and records the fetch time. Redirects, non-HTML responses, oversized pages, and fetch failures are rejected rather than silently treated as evidence. Disable this option to require the persisted vector index.
+
 The UI must not display fabricated scheme counts, synchronization states, performance figures, latency claims, audit/compliance guarantees, or source details absent from the returned answer metadata. It must not infer that a citation is official merely because it is presented as a link. Citation URLs are rendered as links only when they use HTTP or HTTPS, and answer text is inserted as text rather than interpreted as markup. Motion is brief and restrained, with reduced-motion support and visible keyboard focus.
 
 The demo/inspection view should make the source, extracted text, chunk, embedding/model metadata, vector-store record, retrieved evidence, and final answer relationship easy to follow. It should not expose secrets, prohibited personal information, or unnecessary user-input history.
@@ -217,6 +219,7 @@ Use one central configuration source for ingestion and query execution. A local 
 | `sources.registry` | Explicitly curated source list |
 | `retrieval.top_k` | Configurable small-corpus retrieval limit |
 | `retrieval.min_relevance` | Configurable threshold/no-evidence behavior |
+| `retrieval.live_source_fallback` | `true` to fetch one matching source from the curated registry when the embedding index is absent |
 | `answer.max_sentences` | `3` |
 
 Provider secrets are loaded at runtime from environment variables or a local `.env`. Configuration errors must identify the missing setting without printing secret values. Provider changes must not affect ingestion artifacts, and embedding/vector-store changes require explicit re-ingestion or migration rather than silent reuse of incompatible data.

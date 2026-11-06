@@ -13,7 +13,8 @@
   },
   "retrieval": {
     "top_k": 5,
-    "min_relevance": null
+    "min_relevance": null,
+    "live_source_fallback": true
   },
   "llm": {
     "provider": "groq",
