@@ -8,6 +8,7 @@ import app as web_app
 from src.loading.scrape_sources import PageTextExtractor
 from src.retrieval.retriever import (
     _extract_historical_sip_performance,
+    _implied_annualized_sip_rate,
     _live_source_evidence,
     _select_registry_sources,
     build_answer,
@@ -182,16 +183,26 @@ class WebUiTests(unittest.TestCase):
 
         self.assertEqual(result["monthly_investment"], 5000)
         self.assertEqual(result["as_of"], "05 Nov '26")
-        self.assertEqual(result["periods"][0], {
-            "period": "1 year",
-            "months": 12,
-            "total_investment": 60000,
-            "would_become": 59766,
-            "return_percent": -0.39,
-            "display_return": "-0.39%",
-        })
+        self.assertEqual(result["periods"][0]["period"], "1 year")
+        self.assertEqual(result["periods"][0]["months"], 12)
+        self.assertEqual(result["periods"][0]["total_investment"], 60000)
+        self.assertEqual(result["periods"][0]["would_become"], 59766)
+        self.assertEqual(result["periods"][0]["return_percent"], -0.39)
+        self.assertIsInstance(result["periods"][0]["implied_annualized_rate_percent"], float)
         self.assertEqual(result["periods"][1]["months"], 36)
         self.assertEqual(result["periods"][1]["display_return"], "+2.10%")
+
+    def test_implied_sip_rate_recovers_known_source_rate(self):
+        monthly_investment = 100
+        months = 12
+        monthly_rate = 0.01
+        value = monthly_investment * (
+            ((1 + monthly_rate) ** months - 1) / monthly_rate
+        )
+
+        implied_rate = _implied_annualized_sip_rate(monthly_investment, months, value)
+
+        self.assertAlmostEqual(implied_rate, ((1 + monthly_rate) ** 12 - 1) * 100, places=2)
 
     def test_historical_performance_prefers_parsable_official_then_fallback(self):
         historical_page = (
@@ -222,14 +233,18 @@ class WebUiTests(unittest.TestCase):
     def test_selected_fund_uses_source_backed_history_calculator(self):
         self.assertIn('id="return-calculator"', HOME_PAGE)
         self.assertIn('id="calculator-monthly"', HOME_PAGE)
+        self.assertIn('id="calculator-years"', HOME_PAGE)
         self.assertIn('id="calculator-period"', HOME_PAGE)
         self.assertIn('id="historical-chart"', HOME_PAGE)
         self.assertIn('fetch(`/api/funds/${encodeURIComponent(fundId)}/performance`)', HOME_PAGE)
-        self.assertIn("published historical SIP illustration", HOME_PAGE)
+        self.assertIn("implied_annualized_rate_percent", HOME_PAGE)
+        self.assertIn("Illustrative value at end of tenure", HOME_PAGE)
+        self.assertIn("Illustrative scenario, not a forecast.", HOME_PAGE)
+        self.assertIn("Math.pow(1 + annualizedRate / 100, 1 / 12) - 1", HOME_PAGE)
         self.assertNotIn('id="calculator-rate"', HOME_PAGE)
-        self.assertNotIn("annualRate", HOME_PAGE)
+        self.assertNotIn("Assumed annual return", HOME_PAGE)
         self.assertIn("conversation.fundId = suggestionButton.dataset.fundId", HOME_PAGE)
-        self.assertIn('calculatorMonthly.addEventListener("input", renderReturnCalculator)', HOME_PAGE)
+        self.assertIn("for (const input of [calculatorMonthly, calculatorYears])", HOME_PAGE)
         self.assertNotIn("fund.return", HOME_PAGE)
 
     def test_metric_visuals_are_animated_and_colors_do_not_signal_suitability(self):

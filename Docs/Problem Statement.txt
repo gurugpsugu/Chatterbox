@@ -19,7 +19,7 @@ Tiny UI: welcome line + 3 example questions and a note: “Facts-only. No invest
 Key constraints
 **Public sources only.** No screenshots of the app back-end; no third-party blogs as sources.
 **No PII.** Do not accept/store PAN, Aadhaar, account numbers, OTPs, emails, or phone numbers.
-**No advice or forecasts.** A selected-fund panel may display only historical returns and SIP illustrations reported by an approved, cited source. Do not assume annual returns, project future values, annualize source values, compare funds, or imply past performance predicts future results. Show an unavailable state when the source data cannot be verified.
+**No advice or promises.** A selected-fund panel may graph historical returns and SIP examples from an approved, cited source. It may infer a source-implied annualized SIP rate from the source's contribution, ending value, and period, then let users explore an illustrative future-value scenario using their monthly amount and tenure. Clearly show the inferred-rate and month-end-contribution assumptions, and explain that past performance does not predict future results. Do not compare funds or present the scenario as a forecast, promise, advice, or NAV-accurate ledger. Show an unavailable state when the source data cannot support the calculation.
 **Clarity & transparency.** Keep answers ≤3 sentences; add “Last updated from sources: ”.
 What to submit (deliverables)
 Working prototype link (app/notebook) or a ≤3-min demo video if hosting isn’t possible.
@@ -48,7 +48,6 @@ LLM Model
 Groq - API Keys 
 Model - qwen/qwen3.8-27b, take the model deo  .env file. 
 Gemini , OPen PI, Anthropic , mistal 
-
 
 
 

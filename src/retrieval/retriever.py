@@ -183,6 +183,41 @@ def _extract_numeric_facts(lines: list[str]) -> list[dict[str, Any]]:
     return facts
 
 
+def _implied_annualized_sip_rate(
+    monthly_investment: float,
+    months: int,
+    would_become: float,
+) -> float | None:
+    if monthly_investment <= 0 or months <= 0 or would_become <= 0:
+        return None
+    target_per_monthly_unit = would_become / monthly_investment
+
+    def accumulated_value(monthly_rate: float) -> float:
+        value = 0.0
+        for _ in range(months):
+            value = value * (1 + monthly_rate) + 1
+            if not math.isfinite(value) or value >= target_per_monthly_unit:
+                return value
+        return value
+
+    lower = -0.999999
+    upper = 1.0
+    if accumulated_value(lower) > target_per_monthly_unit:
+        return None
+    if accumulated_value(upper) < target_per_monthly_unit:
+        return None
+
+    for _ in range(80):
+        middle = (lower + upper) / 2
+        if accumulated_value(middle) < target_per_monthly_unit:
+            lower = middle
+        else:
+            upper = middle
+    monthly_rate = (lower + upper) / 2
+    annualized_rate = ((1 + monthly_rate) ** 12 - 1) * 100
+    return round(annualized_rate, 4) if math.isfinite(annualized_rate) else None
+
+
 def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | None:
     text = " ".join(" ".join(line.split()) for line in lines if line.strip())
     header_match = re.search(
@@ -243,6 +278,11 @@ def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | No
             "would_become": would_become,
             "return_percent": return_value,
             "display_return": row_match.group(5) + "%",
+            "implied_annualized_rate_percent": _implied_annualized_sip_rate(
+                monthly_investment,
+                months,
+                would_become,
+            ),
         })
 
     if not periods:

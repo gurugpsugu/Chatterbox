@@ -418,7 +418,7 @@ HOME_PAGE = r"""<!doctype html>
 
     .calculator-fields {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 9px;
       align-content: start;
     }
@@ -457,6 +457,18 @@ HOME_PAGE = r"""<!doctype html>
     .calculator-output strong { color: var(--ink-strong); font: 600 14px var(--mono); font-variant-numeric: tabular-nums; }
     .calculator-assumption { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: 10px; }
     .calculator-assumption strong { color: var(--ink-strong); }
+    .projection-highlight { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 9px; border: 1px solid #dfe8e1; border-radius: 10px; background: linear-gradient(110deg, #f1f6f2, #fff 78%); padding: 14px 16px; }
+    .projection-highlight span { display: block; color: var(--muted); font: 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .projection-highlight strong { display: block; margin-top: 3px; color: var(--ink-strong); font: 650 clamp(25px, 4vw, 36px)/1.1 var(--display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+    .projection-rate { color: var(--sage-dark); font: 10px var(--mono); }
+    .projection-visual { grid-column: 1 / -1; display: grid; gap: 8px; }
+    .projection-row { display: grid; grid-template-columns: minmax(94px, 25%) 1fr auto; align-items: center; gap: 9px; }
+    .projection-row span:first-child { color: var(--muted); font: 9px var(--mono); }
+    .projection-track { height: 9px; overflow: hidden; border-radius: 99px; background: #e9ece9; }
+    .projection-bar { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #a9b5ad, #71847a); transition: width .65s cubic-bezier(.2,.8,.2,1); }
+    .projection-row:last-child .projection-bar { background: linear-gradient(90deg, #91aa98, #526d5b); }
+    .projection-row strong { color: var(--ink-strong); font: 10px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .projection-empty { grid-column: 1 / -1; }
 
     .historical-visual { grid-column: 1 / -1; min-width: 0; border-top: 1px solid var(--line); padding-top: 13px; }
     .historical-title { margin: 0 0 11px; color: var(--ink-strong); font: 600 12px var(--display); }
@@ -863,6 +875,7 @@ HOME_PAGE = r"""<!doctype html>
       .suggestion-grid { grid-template-columns: 1fr; }
       .fact-visuals { grid-template-columns: 1fr; }
       .return-calculator { grid-template-columns: 1fr; }
+      .calculator-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .suggestion { min-height: 105px; }
       .welcome { padding-top: 56px; }
       .welcome::after { top: 18px; right: -14px; opacity: .5; }
@@ -880,6 +893,9 @@ HOME_PAGE = r"""<!doctype html>
       .send { width: 42px; padding: 0; font-size: 0; }
       .send span { font-size: 17px; }
       .composer-foot span:last-child { display: none; }
+      .calculator-fields, .calculator-result { grid-template-columns: 1fr; }
+      .projection-highlight strong { font-size: 28px; }
+      .projection-row { grid-template-columns: 82px 1fr auto; gap: 6px; }
       footer { flex-direction: column; }
     }
 
@@ -958,17 +974,21 @@ HOME_PAGE = r"""<!doctype html>
       </div>
       <section class="return-calculator" id="return-calculator" aria-labelledby="calculator-title" hidden>
         <div class="calculator-copy">
-          <p class="micro-label">Publisher data · historical illustration</p>
-          <h2 id="calculator-title">Explore reported return history</h2>
+          <p class="micro-label">Source-based scenario · not a forecast</p>
+          <h2 id="calculator-title">Explore an illustrative future value</h2>
           <p id="calculator-fund-name"></p>
         </div>
         <div class="calculator-fields">
           <div class="calculator-field">
-            <label for="calculator-monthly">Monthly investment (₹)</label>
-            <input id="calculator-monthly" type="number" min="1" max="10000000" step="1" inputmode="decimal" placeholder="Enter amount">
+            <label for="calculator-monthly">Monthly amount (₹)</label>
+            <input id="calculator-monthly" type="number" min="1" max="10000000" step="1" inputmode="decimal" placeholder="e.g. 5,000">
           </div>
           <div class="calculator-field">
-            <label for="calculator-period">Published period</label>
+            <label for="calculator-years">Investment tenure (years)</label>
+            <input id="calculator-years" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="1–50">
+          </div>
+          <div class="calculator-field">
+            <label for="calculator-period">Historical basis</label>
             <select id="calculator-period" aria-label="Published historical period" disabled>
               <option value="">Loading source history…</option>
             </select>
@@ -978,7 +998,7 @@ HOME_PAGE = r"""<!doctype html>
           </div>
         </div>
         <figure class="historical-visual" aria-labelledby="historical-title">
-          <figcaption class="historical-title" id="historical-title">Historical returns reported by the source</figcaption>
+          <figcaption class="historical-title" id="historical-title">Historical SIP returns reported by the source</figcaption>
           <div class="historical-chart" id="historical-chart" aria-label="Historical return graph"></div>
           <p class="history-caption" id="history-caption" aria-live="polite"></p>
         </figure>
@@ -1038,6 +1058,7 @@ HOME_PAGE = r"""<!doctype html>
     const returnCalculator = document.getElementById("return-calculator");
     const calculatorFundName = document.getElementById("calculator-fund-name");
     const calculatorMonthly = document.getElementById("calculator-monthly");
+    const calculatorYears = document.getElementById("calculator-years");
     const calculatorPeriod = document.getElementById("calculator-period");
     const calculatorResult = document.getElementById("calculator-result");
     const historicalChart = document.getElementById("historical-chart");
@@ -1169,58 +1190,137 @@ HOME_PAGE = r"""<!doctype html>
       }
       if (renderedHistoryFundId !== fundId) {
         calculatorPeriod.replaceChildren();
-        for (const period of history.periods) {
-          const option = new Option(period.period, String(period.months));
+        const projectionPeriods = history.periods.filter((item) =>
+          Number.isFinite(item.implied_annualized_rate_percent)
+        );
+        for (const period of projectionPeriods) {
+          const rate = period.implied_annualized_rate_percent;
+          const option = new Option(
+            `${period.period} · ${rate >= 0 ? "+" : ""}${rate.toFixed(2)}% implied p.a.`,
+            String(period.months)
+          );
           calculatorPeriod.append(option);
         }
-        calculatorPeriod.disabled = history.periods.length === 0;
-        if (history.periods.length) calculatorPeriod.value = String(history.periods[0].months);
+        calculatorPeriod.disabled = projectionPeriods.length === 0;
+        if (projectionPeriods.length) {
+          const longest = projectionPeriods.reduce((best, item) =>
+            item.months > best.months ? item : best
+          );
+          calculatorPeriod.value = String(longest.months);
+        }
         renderHistoricalChart(history);
         renderedHistoryFundId = fundId;
       }
       const period = history.periods.find((item) => String(item.months) === calculatorPeriod.value);
       const monthly = Number(calculatorMonthly.value);
-      const valid = calculatorMonthly.value !== "" && Number.isFinite(monthly)
-        && monthly > 0 && monthly <= 10000000 && period;
+      const years = Number(calculatorYears.value);
+      const annualizedRate = period && period.implied_annualized_rate_percent;
+      const valid = calculatorMonthly.value !== "" && calculatorYears.value !== ""
+        && Number.isFinite(monthly) && monthly > 0 && monthly <= 10000000
+        && Number.isInteger(years) && years >= 1 && years <= 50
+        && period && Number.isFinite(annualizedRate) && annualizedRate > -100;
       if (!valid) {
         const prompt = document.createElement("p");
-        prompt.className = "calculator-assumption";
-        prompt.textContent = "Enter a monthly amount to scale the publisher’s historical example for a period shown above.";
+        prompt.className = "calculator-assumption projection-empty";
+        prompt.textContent = projectionPeriodsUnavailable(history)
+          ? "The published history does not support a reliable source-implied rate for a projection."
+          : "Enter a monthly amount and a tenure from 1 to 50 years to see an illustrative scenario.";
         calculatorResult.append(prompt);
         return;
       }
 
-      const scale = monthly / history.monthly_investment;
-      const invested = period.total_investment * scale;
-      const historicalValue = period.would_become * scale;
+      const months = years * 12;
+      const monthlyRate = Math.pow(1 + annualizedRate / 100, 1 / 12) - 1;
+      const invested = monthly * months;
+      const projectedValue = monthlyRate === 0
+        ? invested
+        : monthly * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate);
+      if (!Number.isFinite(projectedValue) || !Number.isFinite(invested)) {
+        const prompt = document.createElement("p");
+        prompt.className = "calculator-assumption projection-empty";
+        prompt.setAttribute("role", "alert");
+        prompt.textContent = "This scenario is outside the calculator’s supported numeric range.";
+        calculatorResult.append(prompt);
+        return;
+      }
+      const difference = projectedValue - invested;
       const currency = new Intl.NumberFormat("en-IN", {
         style: "currency",
         currency: "INR",
         maximumFractionDigits: 0,
       });
+      const highlight = document.createElement("div");
+      highlight.className = "projection-highlight";
+      const primary = document.createElement("div");
+      const primaryLabel = document.createElement("span");
+      primaryLabel.textContent = "Illustrative value at end of tenure";
+      const primaryValue = document.createElement("strong");
+      primaryValue.textContent = currency.format(projectedValue);
+      primary.append(primaryLabel, primaryValue);
+      const rateLabel = document.createElement("span");
+      rateLabel.className = "projection-rate";
+      rateLabel.textContent =
+        `${annualizedRate >= 0 ? "+" : ""}${annualizedRate.toFixed(2)}% p.a. · source-implied estimate`;
+      highlight.append(primary, rateLabel);
+      calculatorResult.append(highlight);
+
       for (const [label, amount] of [
-        ["Historical value", historicalValue],
-        ["Scaled amount invested", invested],
-        ["Historical difference", historicalValue - invested],
+        ["Total contributed", invested],
+        [difference >= 0 ? "Illustrative gain" : "Illustrative shortfall", difference],
       ]) {
         const output = document.createElement("div");
         output.className = "calculator-output";
         const outputLabel = document.createElement("span");
         outputLabel.textContent = label;
         const value = document.createElement("strong");
-        value.textContent = currency.format(amount);
+        value.textContent = currency.format(Math.abs(amount));
+        if (amount < 0) value.textContent = `−${value.textContent}`;
         output.append(outputLabel, value);
         calculatorResult.append(output);
       }
+
+      const visual = document.createElement("div");
+      visual.className = "projection-visual";
+      const scaleMaximum = Math.max(invested, projectedValue);
+      for (const [label, amount] of [
+        ["Contributions", invested],
+        ["Scenario value", projectedValue],
+      ]) {
+        const row = document.createElement("div");
+        row.className = "projection-row";
+        const rowLabel = document.createElement("span");
+        rowLabel.textContent = label;
+        const track = document.createElement("span");
+        track.className = "projection-track";
+        track.setAttribute("aria-hidden", "true");
+        const bar = document.createElement("span");
+        bar.className = "projection-bar";
+        track.append(bar);
+        const amountLabel = document.createElement("strong");
+        amountLabel.textContent = currency.format(amount);
+        row.append(rowLabel, track, amountLabel);
+        visual.append(row);
+        requestAnimationFrame(() => {
+          bar.style.width = `${scaleMaximum > 0 ? amount / scaleMaximum * 100 : 0}%`;
+        });
+      }
+      calculatorResult.append(visual);
       const assumption = document.createElement("p");
       assumption.className = "calculator-assumption";
       const emphasis = document.createElement("strong");
-      emphasis.textContent = "Historical illustration only.";
+      emphasis.textContent = "Illustrative scenario, not a forecast.";
       assumption.append(emphasis, document.createTextNode(
-        ` Scaled proportionally from the published historical SIP illustration for ₹${history.monthly_investment.toLocaleString("en-IN")}/month. ` +
-        "This is not an NAV-accurate ledger, a prediction, or an investment recommendation."
+        ` The ${period.period} historical SIP result implies an estimated ${annualizedRate.toFixed(2)}% annualized rate; ` +
+        "the scenario applies that rate to month-end contributions for the tenure entered. Fees and taxes are excluded. " +
+        "Future returns may differ, including being negative. This is not investment advice."
       ));
       calculatorResult.append(assumption);
+    }
+
+    function projectionPeriodsUnavailable(history) {
+      return !history.periods.some((item) =>
+        Number.isFinite(item.implied_annualized_rate_percent)
+      );
     }
 
     function animateMetricValue(element, metric, response) {
@@ -1852,7 +1952,9 @@ HOME_PAGE = r"""<!doctype html>
       showReadAloudIntro = true;
     }
     if (showReadAloudIntro && typeof readAloudDialog.showModal === "function") readAloudDialog.showModal();
-    calculatorMonthly.addEventListener("input", renderReturnCalculator);
+    for (const input of [calculatorMonthly, calculatorYears]) {
+      input.addEventListener("input", renderReturnCalculator);
+    }
     calculatorPeriod.addEventListener("change", renderReturnCalculator);
     renderConversation();
   </script>
