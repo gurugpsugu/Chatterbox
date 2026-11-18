@@ -629,24 +629,6 @@ HOME_PAGE = r"""<!doctype html>
 
     .follow-up:hover { border-color: #bdc9c1; background: var(--sage-pale); }
 
-    .feature-dialog {
-      width: min(440px, calc(100% - 32px));
-      border: 1px solid var(--line-strong);
-      border-radius: 14px;
-      background: var(--surface);
-      padding: 0;
-      color: var(--ink);
-      box-shadow: 0 24px 80px rgb(25 30 27 / 22%);
-    }
-
-    .feature-dialog::backdrop { background: rgb(35 40 37 / 42%); backdrop-filter: blur(3px); }
-    .dialog-content { padding: 24px; }
-    .dialog-content h2 { margin: 9px 0 8px; color: var(--ink-strong); font: 650 22px/1.2 var(--display); }
-    .dialog-content p { margin: 0; color: var(--muted); font-size: 14px; }
-    .dialog-icon { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid #d4e2d7; border-radius: 11px; background: var(--sage-pale); color: var(--sage-dark); font-size: 20px; }
-    .dialog-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
-    .dialog-actions button { min-height: 38px; border: 1px solid #526859; border-radius: 7px; background: #414a44; padding: 0 14px; color: white; cursor: pointer; font: 11px var(--mono); }
-
     .messages {
       display: flex;
       min-height: 100px;
@@ -842,6 +824,9 @@ HOME_PAGE = r"""<!doctype html>
       text-transform: uppercase;
     }
 
+    footer a { text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
     @keyframes enter {
       from { opacity: 0; transform: translateY(7px); }
       to { opacity: 1; transform: translateY(0); }
@@ -942,7 +927,7 @@ HOME_PAGE = r"""<!doctype html>
     <section class="welcome" id="welcome">
       <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> A quieter way to find fund facts</p>
       <h1>Clear answers across mutual funds.</h1>
-      <p class="intro">Explore schemes across six AMCs and eight categories. Answers prioritize official AMC sources and label third-party citations when used.</p>
+      <p class="intro">Explore four HDFC schemes with indexed source material. Answers include citations to the available source documents.</p>
       <div class="trust-row">
         <span class="trust-pill"><span aria-hidden="true">●</span> Facts-only. No investment advice.</span>
         <span class="privacy-note"><span aria-hidden="true">◇</span> Please don’t share personal, account, or contact information.</span>
@@ -1019,19 +1004,9 @@ HOME_PAGE = r"""<!doctype html>
 
     <footer>
       <span>Chatterbox · Mutual fund explorer</span>
-      <span>Facts-only · No investment advice</span>
+      <a href="https://github.com/gurugpsugu/Chatterbox" target="_blank" rel="noopener noreferrer">View repository ↗</a>
     </footer>
   </main>
-
-  <dialog class="feature-dialog" id="read-aloud-dialog" aria-labelledby="read-aloud-title">
-    <div class="dialog-content">
-      <span class="dialog-icon" aria-hidden="true">◖</span>
-      <p class="micro-label" style="margin-top:14px">A little more personal</p>
-      <h2 id="read-aloud-title">Listen to an answer</h2>
-      <p>Use the “Read aloud” control on any answer to hear it spoken in your browser’s voice. Playback stays on this device, and you can stop it whenever you like.</p>
-      <div class="dialog-actions"><button id="dismiss-read-aloud" type="button">Sounds good</button></div>
-    </div>
-  </dialog>
 
   <script>
     const form = document.getElementById("chat-form");
@@ -1048,10 +1023,14 @@ HOME_PAGE = r"""<!doctype html>
     const amcFilter = document.getElementById("amc-filter");
     const fundCount = document.getElementById("fund-count");
     const speechSupported = "speechSynthesis" in window && "SpeechSynthesisUtterance" in window;
+    const disclaimerText =
+      "Mutual fund investments are subject to market risks. Please read all scheme-related documents carefully. " +
+      "Past performance may or may not be sustained in the future. Please consult your financial adviser before investing.";
     let nextConversationId = 2;
     let conversations = [{ id: 1, title: "New chat", turns: [], pending: false }];
     let activeConversationId = 1;
     let activeSpeechButton = null;
+    let disclaimerStarted = false;
     let fundCatalog = [];
     const historicalPerformance = new Map();
     const animatedMetricResponses = new WeakSet();
@@ -1063,6 +1042,44 @@ HOME_PAGE = r"""<!doctype html>
     const calculatorResult = document.getElementById("calculator-result");
     const historicalChart = document.getElementById("historical-chart");
     const historyCaption = document.getElementById("history-caption");
+
+    function britishVoice() {
+      if (!speechSupported) return null;
+      const voices = window.speechSynthesis.getVoices();
+      const britishVoices = voices.filter((voice) => /^en-GB\b/i.test(voice.lang));
+      const likelyFemale = /\b(female|serena|sonia|libby|hazel|amy|martha|kate|susan)\b/i;
+      return britishVoices.find((voice) => likelyFemale.test(voice.name))
+        || britishVoices[0]
+        || voices.find((voice) => /^en\b/i.test(voice.lang) && likelyFemale.test(voice.name))
+        || null;
+    }
+
+    function playDisclaimer() {
+      if (!speechSupported || disclaimerStarted) return;
+      const utterance = new SpeechSynthesisUtterance(disclaimerText);
+      const voice = britishVoice();
+      if (voice) utterance.voice = voice;
+      utterance.rate = 1.8;
+      utterance.pitch = 1.08;
+      utterance.volume = 0.42;
+      disclaimerStarted = true;
+      utterance.onstart = () => {
+        disclaimerStarted = true;
+        window.removeEventListener("pointerdown", playDisclaimer);
+        window.removeEventListener("keydown", playDisclaimer);
+      };
+      utterance.onerror = (event) => {
+        if (event.error === "not-allowed") disclaimerStarted = false;
+      };
+      window.speechSynthesis.speak(utterance);
+    }
+
+    if (speechSupported) {
+      playDisclaimer();
+      window.speechSynthesis.addEventListener("voiceschanged", playDisclaimer, { once: true });
+      window.addEventListener("pointerdown", playDisclaimer);
+      window.addEventListener("keydown", playDisclaimer);
+    }
     let calculatorFundId = null;
     let renderedHistoryFundId = null;
 
@@ -1719,8 +1736,10 @@ HOME_PAGE = r"""<!doctype html>
         }
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(answer.textContent);
+        const voice = britishVoice();
+        if (voice) utterance.voice = voice;
         utterance.rate = 0.96;
-        utterance.pitch = 1;
+        utterance.pitch = 1.08;
         utterance.onend = utterance.onerror = () => {
           if (activeSpeechButton === readAloud) {
             readAloud.setAttribute("aria-pressed", "false");
@@ -1950,22 +1969,6 @@ HOME_PAGE = r"""<!doctype html>
       questionField.focus();
     });
 
-    const readAloudDialog = document.getElementById("read-aloud-dialog");
-    document.getElementById("dismiss-read-aloud").addEventListener("click", () => {
-      readAloudDialog.close();
-      try {
-        window.sessionStorage.setItem("chatterbox-read-aloud-intro-seen", "true");
-      } catch {
-        // The introduction remains available on the next visit when session storage is disabled.
-      }
-    });
-    let showReadAloudIntro = true;
-    try {
-      showReadAloudIntro = window.sessionStorage.getItem("chatterbox-read-aloud-intro-seen") !== "true";
-    } catch {
-      showReadAloudIntro = true;
-    }
-    if (showReadAloudIntro && typeof readAloudDialog.showModal === "function") readAloudDialog.showModal();
     for (const input of [calculatorMonthly, calculatorYears]) {
       input.addEventListener("input", renderReturnCalculator);
     }

@@ -31,6 +31,11 @@ class WebUiTests(unittest.TestCase):
         self.assertIn('aria-live="polite"', page)
         self.assertIn("prefers-reduced-motion", page)
         self.assertIn('fetch("/api/funds")', page)
+        self.assertIn('href="https://github.com/gurugpsugu/Chatterbox"', page)
+        self.assertIn("Mutual fund investments are subject to market risks.", page)
+        self.assertIn('utterance.rate = 1.8', page)
+        self.assertNotIn("read-aloud-dialog", page)
+        self.assertNotIn("showModal()", page)
 
     def test_chat_endpoint_delegates_to_answer_logic(self):
         expected = {"status": "answered", "answer": "Verified from sources.", "citations": []}
@@ -67,16 +72,24 @@ class WebUiTests(unittest.TestCase):
     def test_fund_catalog_endpoint_exposes_categories_amcs_and_validated_sources(self):
         catalog = web_app.fund_catalog()
 
-        self.assertEqual(len(catalog["funds"]), 12)
-        self.assertEqual(len(catalog["categories"]), 8)
-        self.assertEqual(len(catalog["amcs"]), 6)
+        self.assertEqual(
+            {fund["fund_id"] for fund in catalog["funds"]},
+            {
+                "hdfc-large-cap",
+                "hdfc-mid-cap",
+                "hdfc-flexi-cap",
+                "hdfc-elss-tax-saver",
+            },
+        )
+        self.assertEqual(len(catalog["categories"]), 4)
+        self.assertEqual(catalog["amcs"], ["HDFC Mutual Fund"])
         self.assertEqual(
             catalog["source_policy"],
             "official_first_with_labeled_third_party_fallback",
         )
-        sbi_small = next(fund for fund in catalog["funds"] if fund["fund_id"] == "sbi-small-cap")
-        self.assertIn("sbimf.com", sbi_small["official_url"])
-        self.assertIn("groww.in", sbi_small["fallback_url"])
+        hdfc_large = next(fund for fund in catalog["funds"] if fund["fund_id"] == "hdfc-large-cap")
+        self.assertIsNone(hdfc_large["official_url"])
+        self.assertIn("groww.in", hdfc_large["fallback_url"])
 
     def test_live_source_uses_official_source_then_falls_back_when_fact_is_missing(self):
         question = "What is the expense ratio of SBI Small Cap Fund Direct Growth?"
@@ -149,9 +162,10 @@ class WebUiTests(unittest.TestCase):
         self.assertIn('role="tabpanel"', HOME_PAGE)
         self.assertIn('aria-label", "Suggested follow-up questions"', HOME_PAGE)
         self.assertIn("More facts from this scheme", HOME_PAGE)
-        self.assertIn('id="read-aloud-dialog"', HOME_PAGE)
+        self.assertNotIn('id="read-aloud-dialog"', HOME_PAGE)
         self.assertIn("SpeechSynthesisUtterance", HOME_PAGE)
-        self.assertIn("window.sessionStorage", HOME_PAGE)
+        self.assertIn("function britishVoice()", HOME_PAGE)
+        self.assertIn("/^en-GB\\b/i", HOME_PAGE)
         self.assertIn("body: JSON.stringify({ question, context })", HOME_PAGE)
 
     def test_suggestion_to_chat_transition_respects_reduced_motion(self):
