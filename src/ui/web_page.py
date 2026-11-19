@@ -470,7 +470,8 @@ HOME_PAGE = r"""<!doctype html>
     .projection-row strong { color: var(--ink-strong); font: 10px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .projection-empty { grid-column: 1 / -1; }
 
-    .historical-visual { grid-column: 1 / -1; min-width: 0; border-top: 1px solid var(--line); padding-top: 13px; }
+    .market-snapshot-grid { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(230px, .8fr); gap: 18px; align-items: start; }
+    .historical-visual { min-width: 0; border-top: 1px solid var(--line); padding-top: 13px; }
     .historical-title { margin: 0 0 11px; color: var(--ink-strong); font: 600 12px var(--display); }
     .historical-chart { display: grid; gap: 9px; }
     .history-row { display: grid; grid-template-columns: minmax(62px, 12%) 1fr auto; align-items: center; gap: 10px; }
@@ -485,6 +486,14 @@ HOME_PAGE = r"""<!doctype html>
     .history-axis span:last-child { transform: translateX(-100%); }
     .history-caption { margin: 10px 0 0; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
     .history-caption a { margin-left: 4px; }
+    .history-disclaimer { margin: 9px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+    .riskometer-visual { min-width: 0; display: grid; align-content: start; gap: 9px; border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 14px; }
+    .riskometer-title { margin: 0; color: var(--ink-strong); font: 600 12px var(--display); }
+    .riskometer-level { margin: 0; color: var(--ink-strong); font: 600 14px var(--mono); }
+    .riskometer-track { height: 14px; overflow: hidden; border-radius: 99px; background: #edf0ed; }
+    .riskometer-fill { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7d9d68, #b2a84f 42%, #d28845 72%, #b94a48); transition: width .65s cubic-bezier(.2,.8,.2,1); }
+    .riskometer-scale { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; color: var(--quiet); font: 7px/1.3 var(--mono); text-align: center; }
+    .riskometer-percentage { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
 
     .chat-label {
       display: flex;
@@ -860,6 +869,7 @@ HOME_PAGE = r"""<!doctype html>
       .suggestion-grid { grid-template-columns: 1fr; }
       .fact-visuals { grid-template-columns: 1fr; }
       .return-calculator { grid-template-columns: 1fr; }
+      .market-snapshot-grid { grid-template-columns: 1fr; }
       .calculator-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .suggestion { min-height: 105px; }
       .welcome { padding-top: 56px; }
@@ -973,7 +983,7 @@ HOME_PAGE = r"""<!doctype html>
             <input id="calculator-years" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="1–50">
           </div>
           <div class="calculator-field">
-            <label for="calculator-period">Historical basis</label>
+            <label for="calculator-period">SIP history basis</label>
             <select id="calculator-period" aria-label="Published historical period" disabled>
               <option value="">Loading source history…</option>
             </select>
@@ -982,11 +992,27 @@ HOME_PAGE = r"""<!doctype html>
             <p class="calculator-assumption">Loading historical values from the fund’s approved source pages…</p>
           </div>
         </div>
-        <figure class="historical-visual" aria-labelledby="historical-title">
-          <figcaption class="historical-title" id="historical-title">Historical SIP returns reported by the source</figcaption>
-          <div class="historical-chart" id="historical-chart" aria-label="Historical return graph"></div>
-          <p class="history-caption" id="history-caption" aria-live="polite"></p>
-        </figure>
+        <div class="market-snapshot-grid">
+          <figure class="historical-visual" aria-labelledby="historical-title">
+            <figcaption class="historical-title" id="historical-title">Returns reported by the source</figcaption>
+            <div class="historical-chart" id="historical-chart" aria-label="Source-reported fund return graph"></div>
+            <p class="history-caption" id="history-caption" aria-live="polite"></p>
+            <p class="history-disclaimer">Mutual fund investments are subject to market risks. Please read all scheme-related documents carefully. Past performance may or may not be sustained in the future. Please consult your financial adviser before investing.</p>
+          </figure>
+          <section class="riskometer-visual" aria-labelledby="riskometer-title">
+            <h3 class="riskometer-title" id="riskometer-title">Source riskometer</h3>
+            <p class="riskometer-level" id="riskometer-level">Loading source riskometer…</p>
+            <div class="riskometer-track" id="riskometer-track" role="meter" aria-label="Source riskometer category" aria-valuemin="1" aria-valuemax="6" aria-valuenow="1" hidden>
+              <span class="riskometer-fill" id="riskometer-fill"></span>
+            </div>
+            <div class="riskometer-scale" aria-hidden="true">
+              <span>Low</span><span>Low–Mod</span><span>Moderate</span><span>Mod–High</span><span>High</span><span>Very High</span>
+            </div>
+            <p class="riskometer-percentage" id="riskometer-percentage"></p>
+            <p class="history-caption" id="riskometer-caption" aria-live="polite"></p>
+            <p class="history-disclaimer">Mutual fund investments are subject to market risks. Please read all scheme-related documents carefully. Past performance may or may not be sustained in the future. Please consult your financial adviser before investing. The bar shows category position only, not a numerical risk percentage.</p>
+          </section>
+        </div>
       </section>
       <div class="messages" id="messages" role="tabpanel" aria-live="polite" aria-relevant="additions"></div>
       <form class="composer" id="chat-form">
@@ -1042,6 +1068,12 @@ HOME_PAGE = r"""<!doctype html>
     const calculatorResult = document.getElementById("calculator-result");
     const historicalChart = document.getElementById("historical-chart");
     const historyCaption = document.getElementById("history-caption");
+    const historicalTitle = document.getElementById("historical-title");
+    const riskometerLevel = document.getElementById("riskometer-level");
+    const riskometerTrack = document.getElementById("riskometer-track");
+    const riskometerFill = document.getElementById("riskometer-fill");
+    const riskometerPercentage = document.getElementById("riskometer-percentage");
+    const riskometerCaption = document.getElementById("riskometer-caption");
 
     function britishVoice() {
       if (!speechSupported) return null;
@@ -1085,13 +1117,28 @@ HOME_PAGE = r"""<!doctype html>
 
     function renderHistoricalChart(history) {
       historicalChart.replaceChildren();
-      const returns = history.periods.map((period) => period.return_percent);
-      if (!returns.length || returns.some((value) => !Number.isFinite(value))) return;
+      const annualizedReturns = Array.isArray(history.annualized_returns)
+        ? history.annualized_returns
+        : [];
+      const chartPeriods = annualizedReturns.length
+        ? annualizedReturns
+        : (Array.isArray(history.periods) ? history.periods : []);
+      const returns = chartPeriods.map((period) => period.return_percent);
+      historicalTitle.textContent = annualizedReturns.length
+        ? "Annualised fund returns reported by the source"
+        : "Source-reported SIP returns";
+      if (!returns.length || returns.some((value) => !Number.isFinite(value))) {
+        const note = document.createElement("p");
+        note.className = "history-caption";
+        note.textContent = "The approved source does not publish return figures for display.";
+        historicalChart.append(note);
+        return;
+      }
       const minimum = Math.min(0, ...returns);
       const maximum = Math.max(0, ...returns);
       const span = maximum - minimum || 1;
       const zeroPosition = -minimum / span * 100;
-      for (const period of history.periods) {
+      for (const period of chartPeriods) {
         const row = document.createElement("div");
         row.className = "history-row";
         const label = document.createElement("span");
@@ -1113,8 +1160,10 @@ HOME_PAGE = r"""<!doctype html>
         track.append(bar, zero);
         const result = document.createElement("span");
         result.className = "history-return";
-        result.textContent = period.display_return;
-        result.setAttribute("aria-label", `${period.period}: ${period.display_return}`);
+        const displayReturn = period.display_return
+          || `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+        result.textContent = displayReturn;
+        result.setAttribute("aria-label", `${period.period}: ${displayReturn}`);
         row.append(label, track, result);
         historicalChart.append(row);
       }
@@ -1130,19 +1179,68 @@ HOME_PAGE = r"""<!doctype html>
       historicalChart.append(axis);
 
       historyCaption.replaceChildren();
-      const asOf = history.as_of ? ` · NAV ${history.as_of}` : "";
+      const asOf = history.as_of ? ` · source data as of ${history.as_of}` : "";
+      const returnsCitation = history.returns_citation || history.citation;
       historyCaption.append(document.createTextNode(
-        `Source-reported SIP returns (not annualized)${asOf} · Publisher: ${history.citation.publisher} ` +
-        `(${history.citation.source_type === "official_amc" ? "official AMC source" : "third-party source"}). `
+        `${annualizedReturns.length ? "Source-reported annualised returns" : "Source-reported SIP returns (not annualised)"}${asOf}` +
+        `${returnsCitation ? ` · Publisher: ${returnsCitation.publisher} (${returnsCitation.source_type === "official_amc" ? "official AMC source" : "third-party source"}). ` : ". "}`
       ));
-      const sourceUrl = safeHttpUrl(history.citation.url);
+      const sourceUrl = safeHttpUrl(returnsCitation && returnsCitation.url);
       if (sourceUrl) {
         const link = document.createElement("a");
         link.href = sourceUrl;
         link.target = "_blank";
         link.rel = "noopener noreferrer";
-        link.textContent = history.citation.label;
+        link.textContent = returnsCitation.label;
         historyCaption.append(link);
+      }
+    }
+
+    function renderRiskometer(history) {
+      const riskometer = history.riskometer;
+      const source = history.riskometer_citation;
+      riskometerCaption.replaceChildren();
+      if (!riskometer) {
+        riskometerLevel.textContent = "Riskometer not present in the approved source.";
+        riskometerTrack.hidden = true;
+        riskometerPercentage.textContent = "";
+        return;
+      }
+
+      const position = Number(riskometer.position);
+      const categoryCount = Number(riskometer.category_count);
+      if (!Number.isInteger(position) || !Number.isInteger(categoryCount)
+          || position < 1 || position > categoryCount) {
+        riskometerLevel.textContent = "The source riskometer could not be interpreted.";
+        riskometerTrack.hidden = true;
+        riskometerPercentage.textContent = "";
+        return;
+      }
+
+      riskometerLevel.textContent = `${riskometer.level} risk`;
+      riskometerTrack.hidden = false;
+      riskometerTrack.setAttribute("aria-valuemax", String(categoryCount));
+      riskometerTrack.setAttribute("aria-valuenow", String(position));
+      riskometerTrack.setAttribute(
+        "aria-valuetext",
+        `${riskometer.level} risk, category ${position} of ${categoryCount}`
+      );
+      riskometerFill.style.width = `${position / categoryCount * 100}%`;
+      riskometerPercentage.textContent = Number.isFinite(riskometer.source_percentage)
+        ? `Risk percentage reported by source: ${riskometer.source_percentage}%.`
+        : "This source reports a risk category, not a numerical risk percentage; the bar shows its position on the six-level scale.";
+
+      if (source) {
+        riskometerCaption.append(document.createTextNode(`Risk category from ${source.publisher}: `));
+        const sourceUrl = safeHttpUrl(source.url);
+        if (sourceUrl) {
+          const link = document.createElement("a");
+          link.href = sourceUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = source.label;
+          riskometerCaption.append(link);
+        }
       }
     }
 
@@ -1182,6 +1280,11 @@ HOME_PAGE = r"""<!doctype html>
         calculatorPeriod.disabled = true;
         historicalChart.replaceChildren();
         historyCaption.textContent = "";
+        historicalTitle.textContent = "Returns reported by the source";
+        riskometerLevel.textContent = "Loading source riskometer…";
+        riskometerTrack.hidden = true;
+        riskometerPercentage.textContent = "";
+        riskometerCaption.textContent = "";
       }
       const history = historicalPerformance.get(fundId);
       calculatorResult.replaceChildren();
@@ -1203,11 +1306,13 @@ HOME_PAGE = r"""<!doctype html>
         calculatorPeriod.disabled = true;
         historicalChart.replaceChildren();
         historyCaption.textContent = "";
+        renderRiskometer(history);
         return;
       }
       if (renderedHistoryFundId !== fundId) {
         calculatorPeriod.replaceChildren();
-        const projectionPeriods = history.periods.filter((item) =>
+        const sourceSipPeriods = Array.isArray(history.periods) ? history.periods : [];
+        const projectionPeriods = sourceSipPeriods.filter((item) =>
           Number.isFinite(item.implied_annualized_rate_percent)
         );
         for (const period of projectionPeriods) {
@@ -1219,6 +1324,9 @@ HOME_PAGE = r"""<!doctype html>
           calculatorPeriod.append(option);
         }
         calculatorPeriod.disabled = projectionPeriods.length === 0;
+        if (!projectionPeriods.length) {
+          calculatorPeriod.append(new Option("No source SIP history", ""));
+        }
         if (projectionPeriods.length) {
           const longest = projectionPeriods.reduce((best, item) =>
             item.months > best.months ? item : best
@@ -1226,9 +1334,11 @@ HOME_PAGE = r"""<!doctype html>
           calculatorPeriod.value = String(longest.months);
         }
         renderHistoricalChart(history);
+        renderRiskometer(history);
         renderedHistoryFundId = fundId;
       }
-      const period = history.periods.find((item) => String(item.months) === calculatorPeriod.value);
+      const sourceSipPeriods = Array.isArray(history.periods) ? history.periods : [];
+      const period = sourceSipPeriods.find((item) => String(item.months) === calculatorPeriod.value);
       const monthly = Number(calculatorMonthly.value);
       const years = Number(calculatorYears.value);
       const annualizedRate = period && period.implied_annualized_rate_percent;
@@ -1335,9 +1445,9 @@ HOME_PAGE = r"""<!doctype html>
     }
 
     function projectionPeriodsUnavailable(history) {
-      return !history.periods.some((item) =>
+      return !(Array.isArray(history.periods) && history.periods.some((item) =>
         Number.isFinite(item.implied_annualized_rate_percent)
-      );
+      ));
     }
 
     function animateMetricValue(element, metric, response) {

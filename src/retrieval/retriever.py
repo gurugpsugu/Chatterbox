@@ -208,6 +208,9 @@ def load_fund_fact_cache(path: Path = DEFAULT_FACT_CACHE) -> dict[str, Any]:
                 raise ValueError(f"Fund {fund['fund_id']} has an invalid source cache entry")
             if not isinstance(source.get("retrieved_at"), str) or not isinstance(source.get("facts"), list):
                 raise ValueError(f"Fund {fund['fund_id']} source cache is missing data")
+            for key in ("periods", "annualized_returns"):
+                if key in source and not isinstance(source[key], list):
+                    raise ValueError(f"Fund {fund['fund_id']} has invalid {key} data")
             for fact in source["facts"]:
                 if (
                     not isinstance(fact, dict)
@@ -218,6 +221,18 @@ def load_fund_fact_cache(path: Path = DEFAULT_FACT_CACHE) -> dict[str, Any]:
                     or not isinstance(fact.get("unit"), str)
                 ):
                     raise ValueError(f"Fund {fund['fund_id']} contains an invalid cached fact")
+            riskometer = source.get("riskometer")
+            if riskometer is not None and (
+                not isinstance(riskometer, dict)
+                or not isinstance(riskometer.get("level"), str)
+                or not isinstance(riskometer.get("position"), int)
+                or not isinstance(riskometer.get("category_count"), int)
+                or (
+                    riskometer.get("source_percentage") is not None
+                    and not isinstance(riskometer["source_percentage"], (int, float))
+                )
+            ):
+                raise ValueError(f"Fund {fund['fund_id']} has invalid riskometer data")
     return cache
 
 
@@ -281,7 +296,7 @@ def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | No
         r"\b(\d+(?:\.\d+)?)\s+(months?|years?)\s+"
         r"(?:₹\s*|INR\s*)([\d,]+(?:\.\d+)?)\s+"
         r"(?:₹\s*|INR\s*)([\d,]+(?:\.\d+)?)\s+"
-        r"([+-]?\d+(?:\.\d+)?)\s*%",
+        r"([+-]?\s*\d+(?:\.\d+)?)\s*%",
         re.IGNORECASE,
     )
     remaining_text = text[header_match.end():]
@@ -305,7 +320,8 @@ def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | No
         if abs(total_investment - expected_investment) > max(1, expected_investment * 0.02):
             continue
 
-        return_value = float(row_match.group(5))
+        return_text = re.sub(r"\s+", "", row_match.group(5))
+        return_value = float(return_text)
         value_return = (would_become / total_investment - 1) * 100
         if abs(value_return - return_value) > 0.1:
             continue
@@ -315,7 +331,7 @@ def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | No
             "total_investment": total_investment,
             "would_become": would_become,
             "return_percent": return_value,
-            "display_return": row_match.group(5) + "%",
+            "display_return": return_text + "%",
             "implied_annualized_rate_percent": _implied_annualized_sip_rate(
                 monthly_investment,
                 months,
@@ -339,6 +355,65 @@ def _extract_historical_sip_performance(lines: list[str]) -> dict[str, Any] | No
     }
 
 
+def _extract_annualized_returns(lines: list[str]) -> list[dict[str, Any]]:
+    text = " ".join(" ".join(line.split()) for line in lines if line.strip())
+    table_match = re.search(
+        r"Annuali[sz]ed returns\s+Absolute returns\s+Name\s+"
+        r"(?P<periods>(?:\d+\s*Y\s*)+All)\s+Fund returns\s+"
+        r"(?P<values>(?:[+-]?\s*\d+(?:\.\d+)?\s*%\s*)+)",
+        text,
+        re.IGNORECASE,
+    )
+    if table_match is None:
+        return []
+
+    periods = re.findall(r"\d+\s*Y|All", table_match.group("periods"), re.IGNORECASE)
+    values = [
+        match.group(0).replace(" ", "")
+        for match in re.finditer(r"[+-]?\s*\d+(?:\.\d+)?\s*%", table_match.group("values"))
+    ]
+    if len(periods) != len(values):
+        return []
+    return [
+        {
+            "period": period.upper().replace(" ", ""),
+            "return_percent": float(value[:-1]),
+            "display_return": value,
+            "annualized": True,
+        }
+        for period, value in zip(periods, values, strict=True)
+    ]
+
+
+def _extract_riskometer(text: str) -> dict[str, Any] | None:
+    levels = (
+        ("Low", 1),
+        ("Low to Moderate", 2),
+        ("Moderate", 3),
+        ("Moderately High", 4),
+        ("High", 5),
+        ("Very High", 6),
+    )
+    for level, position in reversed(levels):
+        match = re.search(rf"\b{re.escape(level)}\s+Risk\b", text, re.IGNORECASE)
+        if match:
+            percentage_match = re.search(
+                r"\b(?:risk percentage|riskometer score|risk score)\s*[:\-]\s*"
+                r"(\d+(?:\.\d+)?)\s*%",
+                text[max(0, match.start() - 80):match.end() + 120],
+                re.IGNORECASE,
+            )
+            return {
+                "level": level,
+                "position": position,
+                "category_count": 6,
+                "source_percentage": (
+                    float(percentage_match.group(1)) if percentage_match else None
+                ),
+            }
+    return None
+
+
 def get_fund_historical_performance(
     fund_id: str,
     registry_path: Path = DEFAULT_REGISTRY,
@@ -351,7 +426,61 @@ def get_fund_historical_performance(
         raise KeyError(f"No approved sources are configured for fund {fund_id!r}")
     sources.sort(key=lambda source: (source.get("source_priority", 10), source["source_id"]))
 
+    def citation(source: dict[str, Any]) -> dict[str, str]:
+        return {
+            "url": source["url"],
+            "label": source["title"],
+            "publisher": source["publisher"],
+            "source_type": source["source_type"],
+        }
+
+    cached_sources: dict[str, dict[str, Any]] = {}
+    if DEFAULT_FACT_CACHE.is_file():
+        cache = load_fund_fact_cache()
+        cached_sources = {
+            source["source_id"]: source
+            for fund in cache["funds"]
+            if fund["fund_id"] == fund_id
+            for source in fund["sources"]
+        }
+
+    returns_source = next(
+        (
+            source for source in sources
+            if cached_sources.get(source["source_id"], {}).get("periods")
+            or cached_sources.get(source["source_id"], {}).get("annualized_returns")
+        ),
+        None,
+    )
+    risk_source = next(
+        (
+            source for source in sources
+            if cached_sources.get(source["source_id"], {}).get("riskometer")
+        ),
+        None,
+    )
+    if returns_source or risk_source:
+        return_cache = cached_sources.get(returns_source["source_id"], {}) if returns_source else {}
+        risk_cache = cached_sources.get(risk_source["source_id"], {}) if risk_source else {}
+        selected_cache = return_cache if returns_source else risk_cache
+        returns_citation = citation(returns_source) if returns_source else None
+        riskometer_citation = citation(risk_source) if risk_source else None
+        return {
+            "status": "available",
+            "fund_id": fund_id,
+            "periods": return_cache.get("periods", []),
+            "annualized_returns": return_cache.get("annualized_returns", []),
+            "as_of": return_cache.get("as_of"),
+            "riskometer": risk_cache.get("riskometer"),
+            "citation": returns_citation or riskometer_citation,
+            "returns_citation": returns_citation,
+            "riskometer_citation": riskometer_citation,
+            "retrieved_at": selected_cache["retrieved_at"],
+        }
+
     fetch_errors: list[str] = []
+    live_returns: tuple[dict[str, Any], dict[str, Any]] | None = None
+    live_risk: tuple[dict[str, Any], dict[str, Any]] | None = None
     for source in sources:
         try:
             text = _fetch_source_text(source["url"])
@@ -359,18 +488,36 @@ def get_fund_historical_performance(
             fetch_errors.append(f"{source['publisher']}: {error}")
             continue
         history = _extract_historical_sip_performance(text.splitlines())
-        if history is None:
-            continue
+        annualized_returns = _extract_annualized_returns(text.splitlines())
+        riskometer = _extract_riskometer(text)
+        if (history or annualized_returns) and live_returns is None:
+            live_returns = (source, {
+                "periods": history["periods"] if history else [],
+                "annualized_returns": annualized_returns,
+                "as_of": history["as_of"] if history else None,
+            })
+        if riskometer and live_risk is None:
+            live_risk = (source, {"riskometer": riskometer})
+        if live_returns and live_risk:
+            break
+
+    if live_returns or live_risk:
+        returns_source = live_returns[0] if live_returns else None
+        return_data = live_returns[1] if live_returns else {}
+        risk_source = live_risk[0] if live_risk else None
+        risk_data = live_risk[1] if live_risk else {}
+        returns_citation = citation(returns_source) if returns_source else None
+        riskometer_citation = citation(risk_source) if risk_source else None
         return {
             "status": "available",
             "fund_id": fund_id,
-            **history,
-            "citation": {
-                "url": source["url"],
-                "label": source["title"],
-                "publisher": source["publisher"],
-                "source_type": source["source_type"],
-            },
+            "periods": return_data.get("periods", []),
+            "annualized_returns": return_data.get("annualized_returns", []),
+            "as_of": return_data.get("as_of"),
+            "riskometer": risk_data.get("riskometer"),
+            "citation": returns_citation or riskometer_citation,
+            "returns_citation": returns_citation,
+            "riskometer_citation": riskometer_citation,
             "retrieved_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -379,7 +526,7 @@ def get_fund_historical_performance(
     return {
         "status": "unavailable",
         "fund_id": fund_id,
-        "message": "Historical SIP return data was not present in the approved source pages.",
+        "message": "Return and riskometer data was not present in the approved source pages.",
     }
 
 

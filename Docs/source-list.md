@@ -19,6 +19,8 @@ The approved registry is [`config/sources.json`](../config/sources.json). Fetchi
 
 AMC-level information is also sourced from [Groww's HDFC Mutual Fund overview](https://groww.in/mutual-funds/amc/hdfc-mutual-funds). Groww is a third-party source, not an official AMC, SEBI, or AMFI publication.
 
+The performance panel displays available source-published annualised returns and SIP-history results, with a citation next to each dataset. The riskometer shows the published category and its position on the six-category scale. It does not derive a risk percentage; a number is shown only if the cited source explicitly publishes one.
+
 The deployable numeric facts are refreshed from scraped artifacts with:
 
 ```powershell

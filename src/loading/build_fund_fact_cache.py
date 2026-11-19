@@ -1,4 +1,4 @@
-"""Build a deployable snapshot of verified numeric facts from scraped sources."""
+"""Build a deployable snapshot of verified facts and performance data."""
 
 from __future__ import annotations
 
@@ -15,7 +15,12 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.loading.load_documents import validate_artifact
 from src.loading.scrape_sources import DEFAULT_REGISTRY, load_registry
-from src.retrieval.retriever import _extract_numeric_facts
+from src.retrieval.retriever import (
+    _extract_annualized_returns,
+    _extract_historical_sip_performance,
+    _extract_numeric_facts,
+    _extract_riskometer,
+)
 
 DEFAULT_INPUT = PROJECT_ROOT / "data" / "raw"
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "fund_facts.json"
@@ -48,15 +53,24 @@ def build_fact_cache(
             })
             continue
 
-        facts = _extract_numeric_facts(document["text"].splitlines())
-        if not facts:
+        lines = document["text"].splitlines()
+        facts = _extract_numeric_facts(lines)
+        sip_history = _extract_historical_sip_performance(lines)
+        annualized_returns = _extract_annualized_returns(lines)
+        riskometer = _extract_riskometer(document["text"])
+        if not facts and not sip_history and not annualized_returns and not riskometer:
             skipped.append({"source_id": source["source_id"], "reason": "No supported numeric facts found"})
             continue
-        funds.setdefault(fund_id, []).append({
+        source_cache = {
             "source_id": source["source_id"],
             "retrieved_at": document["retrieved_at"],
             "facts": facts,
-        })
+            "periods": sip_history["periods"] if sip_history else [],
+            "annualized_returns": annualized_returns,
+            "as_of": sip_history["as_of"] if sip_history else None,
+            "riskometer": riskometer,
+        }
+        funds.setdefault(fund_id, []).append(source_cache)
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -70,7 +84,7 @@ def build_fact_cache(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Build a deployable numeric-fact cache from validated scraped pages."
+        description="Build a deployable facts and performance cache from validated scraped pages."
     )
     parser.add_argument("--registry", type=Path, default=DEFAULT_REGISTRY)
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
@@ -99,7 +113,7 @@ def main() -> int:
 
     print(json.dumps({
         "funds": len(cache["funds"]),
-        "sources_with_facts": sum(len(fund["sources"]) for fund in cache["funds"]),
+        "sources_with_data": sum(len(fund["sources"]) for fund in cache["funds"]),
         "skipped_sources": len(cache["skipped_sources"]),
         "output": str(args.output),
     }, ensure_ascii=False, indent=2))

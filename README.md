@@ -84,6 +84,7 @@ These examples describe the kinds of questions the assistant handles. Answers de
 |---|---|---|
 | What is the expense ratio of HDFC Large Cap Fund Direct Growth? | The assistant looks up the scheme fact in the available source and cites it. | [HDFC Large Cap Fund](https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth) |
 | What is the minimum SIP amount for HDFC Mid Cap Fund? | The assistant checks the minimum SIP requirement in the scheme source and cites it. | [HDFC Mid Cap Fund](https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth) |
+| What are the published returns and riskometer for HDFC Large Cap Fund? | The app displays source-reported return periods and risk category with separate nearby citations; it does not invent a numeric risk percentage. | [HDFC Large Cap Fund](https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth) |
 | What is the ELSS lock-in period? | The assistant answers from the HDFC ELSS source when evidence is available and cites it. | [HDFC ELSS Tax Saver Fund](https://groww.in/mutual-funds/hdfc-elss-tax-saver-fund-direct-plan-growth) |
 | Should I buy HDFC Mutual Fund? | I can provide factual information, but I can’t make buy/sell recommendations. | [SEBI investor education](https://www.sebi.gov.in/) |
 
@@ -93,7 +94,8 @@ These examples describe the kinds of questions the assistant handles. Answers de
 
 ## Known limits
 
-- The checked-in fact cache contains numeric facts extracted from the approved pages as of each source's retrieval timestamp; refresh it after scraping.
+- The checked-in cache contains numeric facts, returns, and riskometer data extracted from approved pages as of each source's retrieval timestamp; refresh it after scraping.
+- The performance panel uses published annualised returns and SIP-history figures when available, and shows the source's riskometer category. A numeric risk percentage appears only when the source explicitly publishes one; the bar otherwise indicates category position on the six-level scale.
 - The prototype does not crawl links from the target pages.
 - Only curated public sources are used, and official AMC/SEBI/AMFI pages should be preferred when available.
 - Generated data, local secrets, and model artifacts remain outside source control.

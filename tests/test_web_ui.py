@@ -8,7 +8,9 @@ import app as web_app
 from src.loading.scrape_sources import PageTextExtractor
 from src.retrieval.retriever import (
     _chart_for_fact,
+    _extract_annualized_returns,
     _extract_historical_sip_performance,
+    _extract_riskometer,
     _implied_annualized_sip_rate,
     _live_source_evidence,
     _select_registry_sources,
@@ -221,7 +223,8 @@ class WebUiTests(unittest.TestCase):
             "<table><tr><th>Over the past</th><th>Total investment</th>"
             "<th>Would've become</th><th>Historic returns</th><th>Returns</th></tr>"
             "<tr><td>1 year</td><td>₹60,000</td><td>₹59,766</td><td>-0.39%</td></tr>"
-            "<tr><td>3 years</td><td>₹1,80,000</td><td>₹1,83,780</td><td>+2.10%</td></tr>"
+            "<tr><td>3 years</td><td>₹1,80,000</td><td>₹1,83,780</td>"
+            "<td>+</td><td>2.10</td><td>%</td></tr>"
             "</table></main>"
         )
 
@@ -256,7 +259,10 @@ class WebUiTests(unittest.TestCase):
             "Would've become\nHistoric returns\nReturns\n1 year\n₹60,000\n"
             "₹62,000\n+3.33%"
         )
-        with patch(
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "src.retrieval.retriever.DEFAULT_FACT_CACHE",
+            Path(temp_dir) / "missing.json",
+        ), patch(
             "src.retrieval.retriever._fetch_source_text",
             side_effect=["Scheme details only", historical_page],
         ):
@@ -267,7 +273,10 @@ class WebUiTests(unittest.TestCase):
         self.assertEqual(result["periods"][0]["return_percent"], 3.33)
 
     def test_historical_performance_reports_unavailable_without_inventing_rows(self):
-        with patch(
+        with tempfile.TemporaryDirectory() as temp_dir, patch(
+            "src.retrieval.retriever.DEFAULT_FACT_CACHE",
+            Path(temp_dir) / "missing.json",
+        ), patch(
             "src.retrieval.retriever._fetch_source_text",
             return_value="Scheme facts with no historical SIP table",
         ):
@@ -275,6 +284,33 @@ class WebUiTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "unavailable")
         self.assertNotIn("periods", result)
+
+    def test_return_and_risk_parsers_accept_published_source_formats(self):
+        annualized = _extract_annualized_returns([
+            "Annualised returns Absolute returns Name 1Y 3Y 5Y 10Y All Fund returns",
+            "+4.1% +7.2% +10.3% +12.4% +11.5%",
+        ])
+        riskometer = _extract_riskometer("Scheme riskometer: Very High Risk")
+
+        self.assertEqual([item["period"] for item in annualized], ["1Y", "3Y", "5Y", "10Y", "ALL"])
+        self.assertEqual([item["return_percent"] for item in annualized], [4.1, 7.2, 10.3, 12.4, 11.5])
+        self.assertEqual(riskometer["level"], "Very High")
+        self.assertEqual(riskometer["position"], 6)
+        self.assertIsNone(riskometer["source_percentage"])
+
+    def test_historical_performance_uses_cached_returns_and_risk_without_fetching(self):
+        with patch(
+            "src.retrieval.retriever._fetch_source_text",
+            side_effect=AssertionError("verified cache should avoid live requests"),
+        ):
+            result = get_fund_historical_performance("hdfc-large-cap")
+
+        self.assertEqual(result["status"], "available")
+        self.assertTrue(result["annualized_returns"])
+        self.assertEqual(result["annualized_returns"][0]["period"], "3Y")
+        self.assertEqual(result["riskometer"]["level"], "Very High")
+        self.assertIn("groww.in", result["returns_citation"]["url"])
+        self.assertIn("groww.in", result["riskometer_citation"]["url"])
 
     def test_selected_fund_uses_source_backed_history_calculator(self):
         self.assertIn('id="return-calculator"', HOME_PAGE)
@@ -286,6 +322,10 @@ class WebUiTests(unittest.TestCase):
         self.assertIn("implied_annualized_rate_percent", HOME_PAGE)
         self.assertIn("Illustrative value at end of tenure", HOME_PAGE)
         self.assertIn("Illustrative scenario, not a forecast.", HOME_PAGE)
+        self.assertIn('id="riskometer-track"', HOME_PAGE)
+        self.assertIn("This source reports a risk category, not a numerical risk percentage", HOME_PAGE)
+        self.assertIn("Annualised fund returns reported by the source", HOME_PAGE)
+        self.assertIn("Past performance may or may not be sustained in the future.", HOME_PAGE)
         self.assertIn("Math.pow(1 + annualizedRate / 100, 1 / 12) - 1", HOME_PAGE)
         self.assertNotIn('id="calculator-rate"', HOME_PAGE)
         self.assertNotIn("Assumed annual return", HOME_PAGE)
