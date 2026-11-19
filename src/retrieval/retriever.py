@@ -17,6 +17,7 @@ from src.loading.scrape_sources import PageTextExtractor, load_registry
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CHUNKS_DIR = PROJECT_ROOT / "data" / "chunks"
 DEFAULT_EMBEDDINGS_DIR = PROJECT_ROOT / "data" / "embeddings"
+DEFAULT_FACT_CACHE = PROJECT_ROOT / "data" / "fund_facts.json"
 DEFAULT_SETTINGS = PROJECT_ROOT / "config" / "settings.json"
 DEFAULT_REGISTRY = PROJECT_ROOT / "config" / "sources.json"
 FALLBACK_CITATION = "https://www.sebi.gov.in/"
@@ -58,6 +59,8 @@ def _fetch_source_text(url: str, timeout: int = LIVE_SOURCE_TIMEOUT_SECONDS) -> 
         ) from error
     except TimeoutError as error:
         raise RuntimeError("The approved source request timed out.") from error
+    except OSError as error:
+        raise RuntimeError(f"The approved source could not be read: {error}") from error
     if len(content) > MAX_SOURCE_BYTES:
         raise RuntimeError("The approved source page exceeded the maximum supported size.")
     charset = response.headers.get_content_charset() or "utf-8"
@@ -181,6 +184,41 @@ def _extract_numeric_facts(lines: list[str]) -> list[dict[str, Any]]:
             })
             seen.add(key)
     return facts
+
+
+def load_fund_fact_cache(path: Path = DEFAULT_FACT_CACHE) -> dict[str, Any]:
+    try:
+        cache = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"Unable to read fund fact cache {path}: {error}") from error
+    if not isinstance(cache, dict) or not isinstance(cache.get("funds"), list):
+        raise ValueError("Fund fact cache must contain a funds list")
+
+    seen_fund_ids: set[str] = set()
+    for fund in cache["funds"]:
+        if not isinstance(fund, dict) or not isinstance(fund.get("fund_id"), str):
+            raise ValueError("Every cached fund must have a fund ID")
+        if fund["fund_id"] in seen_fund_ids:
+            raise ValueError(f"Duplicate fund ID in fact cache: {fund['fund_id']}")
+        seen_fund_ids.add(fund["fund_id"])
+        if not isinstance(fund.get("sources"), list):
+            raise ValueError(f"Fund {fund['fund_id']} must contain a sources list")
+        for source in fund["sources"]:
+            if not isinstance(source, dict) or not isinstance(source.get("source_id"), str):
+                raise ValueError(f"Fund {fund['fund_id']} has an invalid source cache entry")
+            if not isinstance(source.get("retrieved_at"), str) or not isinstance(source.get("facts"), list):
+                raise ValueError(f"Fund {fund['fund_id']} source cache is missing data")
+            for fact in source["facts"]:
+                if (
+                    not isinstance(fact, dict)
+                    or not isinstance(fact.get("key"), str)
+                    or not isinstance(fact.get("label"), str)
+                    or not isinstance(fact.get("display_value"), str)
+                    or not isinstance(fact.get("value"), (int, float))
+                    or not isinstance(fact.get("unit"), str)
+                ):
+                    raise ValueError(f"Fund {fund['fund_id']} contains an invalid cached fact")
+    return cache
 
 
 def _implied_annualized_sip_rate(
@@ -358,6 +396,52 @@ def _requested_fact_key(question: str) -> str | None:
     return None
 
 
+def _cached_fact_evidence(
+    question: str,
+    context: str = "",
+    registry_path: Path = DEFAULT_REGISTRY,
+    fact_cache_path: Path = DEFAULT_FACT_CACHE,
+) -> list[dict[str, Any]]:
+    fact_key = _requested_fact_key(question)
+    if not fact_key:
+        return []
+    query = " ".join(part for part in (question, context) if part)
+    sources = _select_registry_sources(query, registry_path)
+    if not sources:
+        return []
+
+    cache = load_fund_fact_cache(fact_cache_path)
+    cached_sources = {
+        source["source_id"]: source
+        for fund in cache["funds"]
+        for source in fund["sources"]
+    }
+    for source in sources:
+        cached = cached_sources.get(source["source_id"])
+        if not cached:
+            continue
+        fact = next(
+            (item for item in cached["facts"] if item["key"] == fact_key),
+            None,
+        )
+        if not fact:
+            continue
+        return [{
+            "chunk_id": f"cache-{source['source_id']}-{fact_key}",
+            "source_id": source["source_id"],
+            "title": source["title"],
+            "url": source["url"],
+            "publisher": source["publisher"],
+            "source_type": source["source_type"],
+            "text": f"{fact['label']}\n{fact['display_value']}",
+            "retrieved_at": cached["retrieved_at"],
+            "heading_path": [],
+            "score": 1.0,
+            "facts": [fact],
+        }]
+    return []
+
+
 def _suggest_numeric_follow_ups(
     source_title: str,
     facts: list[dict[str, Any]],
@@ -381,7 +465,7 @@ def _chart_for_fact(fact: dict[str, Any], source_title: str) -> dict[str, Any]:
     magnitude = 10 ** math.floor(math.log10(value)) if value > 0 else 1
     scale_max = next(
         multiplier * magnitude
-        for multiplier in (1, 1.25, 1.5, 2, 2.5, 5, 10)
+        for multiplier in (1, 1.25, 1.5, 2, 2.5, 5, 10, 12.5)
         if multiplier * magnitude >= value * 1.2
     )
     return {
@@ -606,6 +690,13 @@ def retrieve_chunks(
     candidates: list[dict[str, Any]] = []
     embedding_index = _load_embedding_index(embeddings_dir)
     if not embedding_index:
+        cached_evidence = _cached_fact_evidence(
+            screen["normalized"],
+            context_screen["normalized"],
+            registry_path,
+        )
+        if cached_evidence:
+            return cached_evidence
         if live_source_fallback is None:
             try:
                 settings = json.loads(settings_path.read_text(encoding="utf-8"))

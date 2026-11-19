@@ -7,6 +7,7 @@ from unittest.mock import patch
 import app as web_app
 from src.loading.scrape_sources import PageTextExtractor
 from src.retrieval.retriever import (
+    _chart_for_fact,
     _extract_historical_sip_performance,
     _implied_annualized_sip_rate,
     _live_source_evidence,
@@ -72,17 +73,9 @@ class WebUiTests(unittest.TestCase):
     def test_fund_catalog_endpoint_exposes_categories_amcs_and_validated_sources(self):
         catalog = web_app.fund_catalog()
 
-        self.assertEqual(
-            {fund["fund_id"] for fund in catalog["funds"]},
-            {
-                "hdfc-large-cap",
-                "hdfc-mid-cap",
-                "hdfc-flexi-cap",
-                "hdfc-elss-tax-saver",
-            },
-        )
-        self.assertEqual(len(catalog["categories"]), 4)
-        self.assertEqual(catalog["amcs"], ["HDFC Mutual Fund"])
+        self.assertEqual(len(catalog["funds"]), 12)
+        self.assertEqual(len(catalog["categories"]), 8)
+        self.assertEqual(len(catalog["amcs"]), 6)
         self.assertEqual(
             catalog["source_policy"],
             "official_first_with_labeled_third_party_fallback",
@@ -90,6 +83,32 @@ class WebUiTests(unittest.TestCase):
         hdfc_large = next(fund for fund in catalog["funds"] if fund["fund_id"] == "hdfc-large-cap")
         self.assertIsNone(hdfc_large["official_url"])
         self.assertIn("groww.in", hdfc_large["fallback_url"])
+
+    def test_cached_metric_answers_without_live_source_access(self):
+        question = "What is the expense ratio of HDFC Large Cap Fund Direct Growth?"
+        with patch("src.retrieval.retriever._load_embedding_index", return_value={}), patch(
+            "src.retrieval.retriever._fetch_source_text",
+            side_effect=AssertionError("cached facts should avoid live requests"),
+        ):
+            result = web_app.chat(web_app.ChatRequest(question=question))
+
+        self.assertEqual(result["status"], "answered")
+        self.assertEqual(result["metric"]["key"], "expense_ratio")
+        self.assertEqual(
+            result["citations"][0]["url"],
+            "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth",
+        )
+        self.assertTrue(result["last_updated_from_sources"])
+
+    def test_metric_chart_scale_handles_values_near_decade_boundaries(self):
+        for value, expected_scale in ((0.99, 1.25), (9.99, 12.5)):
+            with self.subTest(value=value):
+                chart = _chart_for_fact(
+                    {"value": value, "label": "Expense ratio", "unit": "%", "display_value": f"{value}%"},
+                    "Example Fund",
+                )
+                self.assertGreaterEqual(chart["scale_max"], value * 1.2)
+                self.assertEqual(chart["scale_max"], expected_scale)
 
     def test_live_source_uses_official_source_then_falls_back_when_fact_is_missing(self):
         question = "What is the expense ratio of SBI Small Cap Fund Direct Growth?"
@@ -397,7 +416,10 @@ class WebUiTests(unittest.TestCase):
             with patch(
                 "src.retrieval.retriever._fetch_source_text",
                 return_value=source_text,
-            ) as fetch_source:
+            ) as fetch_source, patch(
+                "src.retrieval.retriever.load_fund_fact_cache",
+                return_value={"funds": []},
+            ):
                 results = retrieve_chunks(
                     "What is the expense ratio of HDFC Large Cap Fund Direct Growth?",
                     chunks_dir=chunks_dir,
@@ -434,9 +456,7 @@ class WebUiTests(unittest.TestCase):
         self.assertEqual(result["status"], "answered")
         self.assertEqual(result["metric"]["display_value"], "₹100")
         self.assertEqual(result["citations"][0]["label"], "HDFC Large Cap Fund Direct Growth")
-        fetch_source.assert_called_once_with(
-            "https://groww.in/mutual-funds/hdfc-large-cap-fund-direct-growth"
-        )
+        fetch_source.assert_not_called()
 
 
 if __name__ == "__main__":

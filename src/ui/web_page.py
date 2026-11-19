@@ -927,7 +927,7 @@ HOME_PAGE = r"""<!doctype html>
     <section class="welcome" id="welcome">
       <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> A quieter way to find fund facts</p>
       <h1>Clear answers across mutual funds.</h1>
-      <p class="intro">Explore four HDFC schemes with indexed source material. Answers include citations to the available source documents.</p>
+      <p class="intro">Explore 12 schemes across six AMCs. Factual answers include citations and source retrieval dates.</p>
       <div class="trust-row">
         <span class="trust-pill"><span aria-hidden="true">●</span> Facts-only. No investment advice.</span>
         <span class="privacy-note"><span aria-hidden="true">◇</span> Please don’t share personal, account, or contact information.</span>

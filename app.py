@@ -11,7 +11,11 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from src.loading.scrape_sources import DEFAULT_REGISTRY, load_registry
-from src.retrieval.retriever import answer_question, get_fund_historical_performance
+from src.retrieval.retriever import (
+    answer_question,
+    get_fund_historical_performance,
+    load_fund_fact_cache,
+)
 from src.ui.web_page import HOME_PAGE
 
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -50,6 +54,10 @@ def fund_catalog() -> dict[str, Any]:
     if len(set(categories)) != len(categories):
         raise ValueError("Fund catalog categories must be unique")
 
+    cached_funds = {
+        fund["fund_id"]: fund
+        for fund in load_fund_fact_cache()["funds"]
+    }
     sources = {
         source["source_id"]: source
         for source in load_registry(DEFAULT_REGISTRY)
@@ -68,6 +76,14 @@ def fund_catalog() -> dict[str, Any]:
         seen_fund_ids.add(fund_id)
         if fund["category"] not in categories:
             raise ValueError(f"Fund {fund_id} uses an unknown category")
+        cached_fund = cached_funds.get(fund_id)
+        cached_fact_keys = {
+            fact["key"]
+            for source in cached_fund["sources"]
+            for fact in source["facts"]
+        } if cached_fund else set()
+        if len(cached_fact_keys & {"aum", "expense_ratio", "minimum_sip", "nav"}) < 2:
+            continue
         source_ids = fund.get("source_ids")
         if not isinstance(source_ids, list) or not source_ids \
                 or not all(isinstance(item, str) and item for item in source_ids):
@@ -102,6 +118,8 @@ def fund_catalog() -> dict[str, Any]:
             "official_publisher": official["publisher"] if official else None,
             "fallback_url": fallback["url"] if fallback else None,
         })
+    if not funds:
+        raise RuntimeError("No funds have enough verified facts to be listed")
     return {
         "categories": categories,
         "amcs": sorted({fund["amc"] for fund in funds}),

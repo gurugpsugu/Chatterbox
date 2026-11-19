@@ -1,0 +1,564 @@
+{
+  "generated_at": "2026-11-19T06:49:02.922479+00:00",
+  "funds": [
+    {
+      "fund_id": "axis-elss-tax-saver",
+      "sources": [
+        {
+          "source_id": "axis-elss-official",
+          "retrieved_at": "2026-11-18T16:51:17.654378+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 116.5964,
+              "unit": "₹",
+              "display_value": "₹116.6"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 30449.56,
+              "unit": "₹ Cr",
+              "display_value": "₹30,449.56 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 1.02,
+              "unit": "%",
+              "display_value": "1.02%"
+            }
+          ]
+        },
+        {
+          "source_id": "axis-elss-groww",
+          "retrieved_at": "2026-11-18T16:51:28.340158+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 116.6,
+              "unit": "₹",
+              "display_value": "₹116.6"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 500.0,
+              "unit": "₹",
+              "display_value": "₹500"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 30449.56,
+              "unit": "₹ Cr",
+              "display_value": "₹30,449.56 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 1.02,
+              "unit": "%",
+              "display_value": "1.02%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "hdfc-elss-tax-saver",
+      "sources": [
+        {
+          "source_id": "hdfc-elss-tax-saver-direct-growth",
+          "retrieved_at": "2026-11-19T06:43:58.899231+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 1549.19,
+              "unit": "₹",
+              "display_value": "₹1,549.19"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 500.0,
+              "unit": "₹",
+              "display_value": "₹500"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 15108.43,
+              "unit": "₹ Cr",
+              "display_value": "₹15,108.43 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 1.18,
+              "unit": "%",
+              "display_value": "1.18%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "hdfc-flexi-cap",
+      "sources": [
+        {
+          "source_id": "hdfc-flexi-cap-direct-growth",
+          "retrieved_at": "2026-11-19T06:43:57.113821+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 2366.22,
+              "unit": "₹",
+              "display_value": "₹2,366.22"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 110441.27,
+              "unit": "₹ Cr",
+              "display_value": "₹110,441.27 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.74,
+              "unit": "%",
+              "display_value": "0.74%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "hdfc-large-cap",
+      "sources": [
+        {
+          "source_id": "hdfc-large-cap-direct-growth",
+          "retrieved_at": "2026-11-19T06:43:55.013441+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 1267.49,
+              "unit": "₹",
+              "display_value": "₹1,267.49"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 37466.3,
+              "unit": "₹ Cr",
+              "display_value": "₹37,466.3 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.99,
+              "unit": "%",
+              "display_value": "0.99%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "hdfc-mid-cap",
+      "sources": [
+        {
+          "source_id": "hdfc-mid-cap-direct-growth",
+          "retrieved_at": "2026-11-19T06:44:00.736317+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 228.63,
+              "unit": "₹",
+              "display_value": "₹228.63"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 100687.07,
+              "unit": "₹ Cr",
+              "display_value": "₹100,687.07 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.73,
+              "unit": "%",
+              "display_value": "0.73%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "icici-corporate-bond",
+      "sources": [
+        {
+          "source_id": "icici-corporate-bond-groww",
+          "retrieved_at": "2026-11-18T16:51:37.384815+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 33.65,
+              "unit": "₹",
+              "display_value": "₹33.65"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 27505.54,
+              "unit": "₹ Cr",
+              "display_value": "₹27,505.54 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.37,
+              "unit": "%",
+              "display_value": "0.37%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "icici-mid-cap",
+      "sources": [
+        {
+          "source_id": "icici-mid-cap-groww",
+          "retrieved_at": "2026-11-18T16:51:07.456960+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 377.61,
+              "unit": "₹",
+              "display_value": "₹377.61"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 7695.3,
+              "unit": "₹ Cr",
+              "display_value": "₹7,695.3 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 1.09,
+              "unit": "%",
+              "display_value": "1.09%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "kotak-nifty-50-index",
+      "sources": [
+        {
+          "source_id": "kotak-nifty-50-official",
+          "retrieved_at": "2026-11-18T16:51:30.841046+00:00",
+          "facts": [
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 1111.0,
+              "unit": "₹ Cr",
+              "display_value": "₹1,111 Cr"
+            },
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 16.9,
+              "unit": "₹",
+              "display_value": "₹16.9"
+            }
+          ]
+        },
+        {
+          "source_id": "kotak-nifty-50-groww",
+          "retrieved_at": "2026-11-18T16:51:33.074098+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 16.9,
+              "unit": "₹",
+              "display_value": "₹16.9"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 1111.56,
+              "unit": "₹ Cr",
+              "display_value": "₹1,111.56 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.13,
+              "unit": "%",
+              "display_value": "0.13%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "nippon-balanced-advantage",
+      "sources": [
+        {
+          "source_id": "nippon-balanced-advantage-official",
+          "retrieved_at": "2026-11-18T16:51:40.126800+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 176.9396,
+              "unit": "₹",
+              "display_value": "₹176.94"
+            }
+          ]
+        },
+        {
+          "source_id": "nippon-balanced-advantage-groww",
+          "retrieved_at": "2026-11-18T16:51:44.339467+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 215.69,
+              "unit": "₹",
+              "display_value": "₹215.69"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 9445.71,
+              "unit": "₹ Cr",
+              "display_value": "₹9,445.71 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.86,
+              "unit": "%",
+              "display_value": "0.86%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "nippon-flexi-cap",
+      "sources": [
+        {
+          "source_id": "nippon-flexi-cap-official",
+          "retrieved_at": "2026-11-18T16:51:10.353806+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 15.6089,
+              "unit": "₹",
+              "display_value": "₹15.61"
+            }
+          ]
+        },
+        {
+          "source_id": "nippon-flexi-cap-groww",
+          "retrieved_at": "2026-11-18T16:51:14.585311+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 18.29,
+              "unit": "₹",
+              "display_value": "₹18.29"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 100.0,
+              "unit": "₹",
+              "display_value": "₹100"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 8999.73,
+              "unit": "₹ Cr",
+              "display_value": "₹8,999.73 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.65,
+              "unit": "%",
+              "display_value": "0.65%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "sbi-large-cap",
+      "sources": [
+        {
+          "source_id": "sbi-large-cap-groww",
+          "retrieved_at": "2026-11-18T16:50:56.355252+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 108.46,
+              "unit": "₹",
+              "display_value": "₹108.46"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 500.0,
+              "unit": "₹",
+              "display_value": "₹500"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 52416.39,
+              "unit": "₹ Cr",
+              "display_value": "₹52,416.39 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.86,
+              "unit": "%",
+              "display_value": "0.86%"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "fund_id": "sbi-small-cap",
+      "sources": [
+        {
+          "source_id": "sbi-small-cap-groww",
+          "retrieved_at": "2026-11-18T16:51:00.879879+00:00",
+          "facts": [
+            {
+              "key": "nav",
+              "label": "NAV",
+              "value": 209.64,
+              "unit": "₹",
+              "display_value": "₹209.64"
+            },
+            {
+              "key": "minimum_sip",
+              "label": "Minimum SIP",
+              "value": 500.0,
+              "unit": "₹",
+              "display_value": "₹500"
+            },
+            {
+              "key": "aum",
+              "label": "Fund size (AUM)",
+              "value": 39202.76,
+              "unit": "₹ Cr",
+              "display_value": "₹39,202.76 Cr"
+            },
+            {
+              "key": "expense_ratio",
+              "label": "Expense ratio",
+              "value": 0.79,
+              "unit": "%",
+              "display_value": "0.79%"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "skipped_sources": [
+    {
+      "source_id": "sbi-large-cap-official",
+      "reason": "No supported numeric facts found"
+    },
+    {
+      "source_id": "sbi-small-cap-official",
+      "reason": "No supported numeric facts found"
+    },
+    {
+      "source_id": "icici-mid-cap-official",
+      "reason": "Missing required fields: text"
+    },
+    {
+      "source_id": "icici-corporate-bond-official",
+      "reason": "Missing required fields: text"
+    }
+  ]
+}
